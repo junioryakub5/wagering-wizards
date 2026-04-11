@@ -1,0 +1,335 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Anton&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Alukyi-inspired palette ── */
+    --bg-primary:   #0d0d0e;   /* true near-black with warm undertone */
+    --bg-secondary: #141416;
+    --bg-card:      #1a1a1c;
+    --accent:       #cba33d;   /* warmer, more saturated Alukyi gold */
+    --accent-light: #e8c05a;
+    --accent-dim:   rgba(203,163,61,0.15);
+    --green:        #22c55e;
+    --green-light:  #4ade80;
+    --red:          #ef4444;
+    --border:       rgba(255,255,255,0.06);
+    --border-gold:  rgba(203,163,61,0.18);
+    --divider:      rgba(203,163,61,0.22); /* thin gold section divider */
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    background-color: var(--bg-primary);
+    /* Alukyi-style grain noise texture */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+
+  /* ── Layout ───────────────────────────────────────── */
+  .page-container {
+    @apply relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ── Section divider (Alukyi thin gold line) ──────── */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--divider) 30%, var(--divider) 70%, transparent);
+    margin: 0;
+    border: none;
+  }
+
+  /* ── Buttons ──────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 font-bold text-sm
+           px-6 py-2.5 rounded-lg transition-all duration-200
+           hover:-translate-y-px active:scale-[0.98];
+    background: var(--accent);
+    color: #0d0d0e;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .btn-primary:hover {
+    background: var(--accent-light);
+    box-shadow: 0 4px 20px rgba(203,163,61,0.35);
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 font-semibold text-sm
+           px-6 py-2.5 rounded-lg border transition-all duration-200
+           hover:-translate-y-px text-gray-300;
+    border-color: rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.03);
+  }
+  .btn-outline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── Cards ────────────────────────────────────────── */
+  .card {
+    @apply rounded-2xl border overflow-hidden transition-all duration-200;
+    background: var(--bg-card);
+    border-color: var(--border);
+  }
+  .card:hover {
+    border-color: var(--border-gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+
+  /* ── Navbar ───────────────────────────────────────── */
+  .nav-link {
+    @apply text-sm font-medium text-gray-400 transition-colors duration-150;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+  }
+  .nav-link:hover { color: white; }
+  .nav-link.active { color: var(--accent); }
+
+  /* ── Filter Tabs ──────────────────────────────────── */
+  .filter-tab {
+    @apply text-sm font-semibold px-4 py-1.5 rounded-md border transition-all duration-150;
+    background: transparent;
+    border-color: rgba(255,255,255,0.07);
+    color: #6b7280;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+  .filter-tab:hover {
+    border-color: rgba(255,255,255,0.15);
+    color: #d1d5db;
+  }
+  .filter-tab.active {
+    background: var(--accent);
+    border-color: transparent;
+    color: #0d0d0e;
+  }
+
+  /* ── Input / Select ───────────────────────────────── */
+  .input-field {
+    @apply w-full border rounded-lg px-4 py-3 text-white placeholder-gray-600
+           text-sm focus:outline-none transition-all duration-200;
+    background: var(--bg-secondary);
+    border-color: var(--border);
+  }
+  .input-field:focus { border-color: var(--accent); }
+
+  .select-field {
+    @apply w-full border rounded-lg px-4 py-3 text-white
+           text-sm focus:outline-none transition-all duration-200;
+    background: var(--bg-secondary);
+    border-color: var(--border);
+  }
+  .select-field:focus { border-color: var(--accent); }
+
+  .label { @apply block text-sm font-medium text-gray-400 mb-1.5; }
+
+  /* ── Badges ───────────────────────────────────────── */
+  .badge-win {
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+    background: rgba(34,197,94,0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.25);
+  }
+  .badge-loss {
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+    background: rgba(239,68,68,0.12);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.25);
+  }
+  .badge-active {
+    @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--border-gold);
+  }
+
+  /* ── Section title — Alukyi heavy condensed style ── */
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  /* ── Blur overlay for locked images ──────────────── */
+  .img-locked {
+    filter: blur(6px) brightness(0.5);
+    transform: scale(1.05);
+    transition: filter 0.3s;
+  }
+
+  /* ──  Admin styles (kept intact) ─────────────────── */
+  .bg-admin-bg   { background-color: #0f172a; }
+  .admin-card    { @apply bg-[#1a2035] border border-slate-700/60 rounded-xl; }
+  .admin-input   {
+    @apply w-full bg-[#0f172a] border border-slate-700/60 rounded-lg px-3.5 py-2.5
+           text-white placeholder-slate-500 text-sm focus:outline-none
+           focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/20 transition-all;
+  }
+  .admin-select  {
+    @apply w-full bg-[#0f172a] border border-slate-700/60 rounded-lg px-3.5 py-2.5
+           text-white text-sm focus:outline-none focus:border-orange-500/60 transition-all;
+  }
+  .admin-label   { @apply block text-sm font-medium text-slate-400 mb-1.5; }
+  .admin-btn-primary {
+    @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm
+           px-5 py-2.5 rounded-lg transition-all active:scale-[0.98];
+  }
+  .admin-btn-ghost {
+    @apply bg-transparent border border-slate-600/60 text-slate-300 hover:border-slate-500
+           hover:text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-all;
+  }
+
+  /* ── Glass card — darker, more Alukyi-premium ─────── */
+  .card-glass {
+    @apply rounded-2xl overflow-hidden transition-all duration-300;
+    background: rgba(20, 20, 22, 0.85);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .card-glass:hover {
+    border-color: var(--border-gold);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(203,163,61,0.08);
+    transform: translateY(-2px);
+  }
+
+  /* ── Gold gradient text ───────────────────────────── */
+  .gradient-text-gold {
+    background: linear-gradient(90deg, #cba33d, #e8c05a, #cba33d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Gold solid button (Alukyi style) ─────────────── */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-lg transition-all duration-200 active:scale-[0.98];
+    background: var(--accent);
+    color: #0d0d0e;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .btn-gold:hover {
+    background: var(--accent-light);
+    box-shadow: 0 6px 24px rgba(203,163,61,0.4);
+    transform: translateY(-1px);
+  }
+
+  /* ── Gold outline button ─────────────────────────── */
+  .btn-outline-gold {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-lg border transition-all duration-200;
+    border-color: var(--border-gold);
+    color: var(--accent);
+    background: rgba(203,163,61,0.04);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .btn-outline-gold:hover {
+    border-color: rgba(203,163,61,0.45);
+    background: rgba(203,163,61,0.08);
+  }
+
+  /* ── Odds badge ─────────────────────────────────── */
+  .odds-badge {
+    @apply absolute top-3 right-3 z-20 text-[10px] font-black px-2.5 py-1 rounded-full text-white tracking-wide;
+  }
+  .odds-pill {
+    @apply absolute top-3 right-3 z-20 text-xs font-black px-2.5 py-1 rounded-md tracking-wide;
+    background: var(--accent);
+    color: #0d0d0e;
+  }
+}
+
+@layer utilities {
+  /* ── Font families ─────────────────────────────── */
+  .font-display  { font-family: 'Barlow Condensed', sans-serif; }
+  .font-brand    { font-family: 'Barlow Condensed', sans-serif; }
+  .font-headline { font-family: 'Anton', sans-serif; }
+
+  .text-accent  { color: var(--accent); }
+  .text-balance { text-wrap: balance; }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(203,163,61,0.15) transparent;
+  }
+
+  /* fadeInUp — used by cards */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fadeInUp {
+    animation: fadeInUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
+  }
+
+  /* sparkle — logo / wizard emoji */
+  @keyframes sparkle {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(203,163,61,0.55)); }
+    50%       { filter: drop-shadow(0 0 16px rgba(203,163,61,0.9)); }
+  }
+  .animate-sparkle {
+    animation: sparkle 2.5s ease-in-out infinite;
+  }
+
+  /* shimmer — text gradient */
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50%       { background-position: 100% 50%; }
+  }
+  .animate-shimmer {
+    animation: shimmer 3s ease-in-out infinite;
+    background-size: 300% 100%;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up {
+    animation: fadeUp 0.45s ease forwards;
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.6; }
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+}
