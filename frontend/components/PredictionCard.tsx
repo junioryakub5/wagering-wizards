@@ -188,6 +188,13 @@ function PaymentModal({
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreError, setRestoreError] = useState("");
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = original; };
+  }, []);
+
   const acc = ACCENT[prediction.oddsCategory] || ACCENT["2+"];
 
   // ── Shared unlock helper ───────────────────────────────────────────────────
@@ -305,7 +312,7 @@ function PaymentModal({
   // ── Verifying overlay ──────────────────────────────────────────────────────
   if (step === "verifying") {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ overscrollBehavior: "contain" }}>
         <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
         <div
           className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-5 py-14 px-8"
@@ -328,7 +335,7 @@ function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={onClose} style={{ overscrollBehavior: "contain" }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
 
       <div
