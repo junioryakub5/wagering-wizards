@@ -241,8 +241,14 @@ function PaymentModal({
     try {
       await loadPaystack();
 
-      // Always get reference from backend so Paystack can verify it
-      const { reference: ref } = await initiatePayment(email, prediction._id);
+      // Backend initializes the transaction with the secret key and returns accessCode
+      const initResult = await initiatePayment(email, prediction._id);
+      const ref = initResult.reference;
+      const accessCode = initResult.accessCode;
+
+      if (!accessCode) {
+        throw new Error("Could not initialize payment. Please try again.");
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const popup = new (window as any).PaystackPop();
@@ -257,18 +263,12 @@ function PaymentModal({
         }
       }, 60000);
 
-      popup.newTransaction({
-        key: PAYSTACK_KEY,
-        email,
-        amount: prediction.price * 100,
-        currency: "GHS",
-        ref,
-        metadata: { predictionId: prediction._id, match: prediction.match },
+      // Use resumeTransaction with access code — no public key needed
+      popup.resumeTransaction(accessCode, {
         onSuccess: async (transaction: { reference: string }) => {
           settled = true;
           clearTimeout(timeout);
           try {
-            // Use the reference from initiate (backend-registered)
             await verifyPayment(ref, prediction._id, email);
             await finalizeUnlock(ref);
           } catch (err: unknown) {

@@ -255,10 +255,40 @@ app.post('/api/payment/initiate', async (req, res) => {
     if (!email || !predictionId) return res.status(400).json({ error: 'email and predictionId required' });
     const prediction = await db.findPredictionById(predictionId);
     if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
-    // Just generate a reference — popup will create the Paystack transaction
+
     const reference = `WW_${uuidv4().replace(/-/g,'').slice(0,16)}`;
-    res.json({ success:true, reference, amount: prediction.price, currency: 'GHS' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+    // Initialize transaction via Paystack API (uses secret key)
+    const { data: psRes } = await axios.post(
+      'https://api.paystack.co/transaction/initialize',
+      {
+        email,
+        amount: prediction.price * 100,
+        currency: 'GHS',
+        reference,
+        metadata: { predictionId, match: prediction.match },
+      },
+      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+    );
+
+    if (!psRes.status) {
+      console.error('Paystack init failed:', psRes.message);
+      return res.status(502).json({ error: psRes.message || 'Paystack initialization failed' });
+    }
+
+    console.log('Paystack init OK — ref:', reference, 'access_code:', psRes.data.access_code);
+    res.json({
+      success: true,
+      reference,
+      accessCode: psRes.data.access_code,
+      authorizationUrl: psRes.data.authorization_url,
+      amount: prediction.price,
+      currency: 'GHS',
+    });
+  } catch (err) {
+    console.error('Initiate error:', err.response?.data || err.message);
+    res.status(500).json({ error: err.response?.data?.message || err.message });
+  }
 });
 
 app.post('/api/payment/verify', async (req, res) => {

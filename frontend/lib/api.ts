@@ -26,7 +26,7 @@ export async function getHistoryPredictions(): Promise<Prediction[]> {
 export async function initiatePayment(
   email: string,
   predictionId: string
-): Promise<{ reference: string; authorization_url: string }> {
+): Promise<{ reference: string; accessCode: string; authorizationUrl: string }> {
   const res = await api.post("/payment/initiate", { email, predictionId });
   return res.data;
 }
