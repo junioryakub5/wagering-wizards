@@ -43,8 +43,13 @@ export async function verifyPayment(
 // ─── Access ───────────────────────────────────────────────────────────────────
 
 export async function getUnlockedPrediction(reference: string): Promise<UnlockData> {
-  const res = await api.get<ApiResponse<UnlockData>>(`/access/${reference}`);
-  return res.data.data;
+  const res = await api.get(`/access/${reference}`);
+  const raw = res.data.data;
+  // Backend returns the prediction directly — wrap it into UnlockData shape
+  return {
+    prediction: raw,
+    payment: { reference, email: "", amount: raw.price || 0, expiresAt: "" },
+  };
 }
 
 export async function restoreAccess(
