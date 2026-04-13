@@ -615,7 +615,7 @@ function LockedCard({
           <img
             src={prediction.previewImageUrl!}
             alt="Prediction slip preview"
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 md:group-hover:scale-105"
             style={{ filter: "blur(10px) brightness(0.4)", transform: "scale(1.1)" }}
           />
         ) : (
@@ -651,7 +651,7 @@ function LockedCard({
         {/* Lock icon + CTA */}
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
+            className="w-14 h-14 rounded-full flex items-center justify-center transition-transform duration-200 md:group-hover:scale-110"
             style={{
               background: "rgba(240,180,41,0.12)",
               border: "1px solid rgba(240,180,41,0.3)",
