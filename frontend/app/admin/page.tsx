@@ -350,11 +350,15 @@ function SlipModal({
     setForm(prev => ({ ...prev, [name]: name === "price" ? Number(value) : value }));
   };
 
-  // Upload slip image to Cloudinary, fall back to local preview on error
+  const [imgUploadError, setImgUploadError]     = useState("");
+  const [proofUploadError, setProofUploadError] = useState("");
+
+  // Upload slip image to Supabase storage
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Optimistic local preview
+    setImgUploadError("");
+    // Show local preview immediately
     const localUrl = URL.createObjectURL(file);
     setImgPreview(localUrl);
     setUploading(true);
@@ -362,19 +366,22 @@ function SlipModal({
       const cdnUrl = await adminUploadImage(token, file);
       setImgPreview(cdnUrl);
       setForm(prev => ({ ...prev, imageUrl: cdnUrl }));
-    } catch {
-      // Keep local blob preview so admin can still see it; warn in console
-      console.warn("Cloudinary upload failed — using local preview. Configure CLOUDINARY_* env vars on the server.");
-      setImgPreview(localUrl);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || (err as Error)?.message || "Upload failed";
+      setImgUploadError(msg);
+      setImgPreview("");
+      setForm(prev => ({ ...prev, imageUrl: "" }));
     } finally {
       setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
-  // Upload proof image to Cloudinary
+  // Upload proof image to Supabase storage
   const onProofFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setProofUploadError("");
     const localUrl = URL.createObjectURL(file);
     setProofPreview(localUrl);
     setUploadingProof(true);
@@ -382,11 +389,14 @@ function SlipModal({
       const cdnUrl = await adminUploadImage(token, file);
       setProofPreview(cdnUrl);
       setForm(prev => ({ ...prev, proofImageUrl: cdnUrl }));
-    } catch {
-      console.warn("Cloudinary proof upload failed — using local preview.");
-      setProofPreview(localUrl);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || (err as Error)?.message || "Upload failed";
+      setProofUploadError(msg);
+      setProofPreview("");
+      setForm(prev => ({ ...prev, proofImageUrl: "" }));
     } finally {
       setUploadingProof(false);
+      if (proofFileRef.current) proofFileRef.current.value = "";
     }
   };
 
@@ -512,29 +522,28 @@ function SlipModal({
           <div>
             <label className="admin-label">Bet Slip Image <span className="text-slate-500 font-normal">(shown blurred before payment)</span></label>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="admin-btn-primary flex items-center gap-2 text-sm">
-                <Upload size={14} /> Choose File
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                className="admin-btn-primary flex items-center gap-2 text-sm disabled:opacity-60">
+                <Upload size={14} /> {uploading ? "Uploading…" : "Choose Image"}
               </button>
-              <span className="text-slate-400 text-sm">{imgPreview ? "Image selected" : "No file chosen"}</span>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+              <span className="text-slate-400 text-sm">
+                {uploading ? "Uploading to storage…" : imgPreview && !imgUploadError ? "✅ Uploaded" : "No image chosen"}
+              </span>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onFile} />
             </div>
-            {imgPreview && (
+            {imgUploadError && (
+              <p className="mt-2 text-red-400 text-xs">❌ Upload failed: {imgUploadError}</p>
+            )}
+            {imgPreview && !imgUploadError && (
               <div className="mt-3 relative inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={imgPreview} alt="Slip preview" className="h-28 rounded-xl object-cover border border-slate-700" />
-                <button type="button" onClick={() => { setImgPreview(""); setForm(p => ({ ...p, imageUrl: "" })); }}
+                <button type="button" onClick={() => { setImgPreview(""); setImgUploadError(""); setForm(p => ({ ...p, imageUrl: "" })); }}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                   <X size={10} />
                 </button>
               </div>
             )}
-            <div className="mt-2">
-              <label className="admin-label text-xs text-slate-500">Or paste image URL</label>
-              <input name="imageUrl" value={imgPreview.startsWith("data:") ? "" : form.imageUrl}
-                onChange={e => { onChange(e); setImgPreview(e.target.value); }}
-                placeholder="https://..." className="admin-input text-xs" />
-            </div>
           </div>
 
           {/* Proof Image — only shown when marking completed */}
@@ -548,30 +557,29 @@ function SlipModal({
                 Proof Image <span className="text-slate-400 font-normal">(result screenshot shown in History)</span>
               </label>
               <div className="flex items-center gap-3">
-                <button type="button" onClick={() => proofFileRef.current?.click()}
-                  className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg font-semibold transition-colors"
+                <button type="button" onClick={() => proofFileRef.current?.click()} disabled={uploadingProof}
+                  className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-60"
                   style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: "#34d399" }}>
-                  <Upload size={14} /> Upload Proof
+                  <Upload size={14} /> {uploadingProof ? "Uploading…" : "Upload Proof Image"}
                 </button>
-                <span className="text-slate-400 text-sm">{proofPreview ? "Proof selected" : "No proof yet"}</span>
-                <input ref={proofFileRef} type="file" accept="image/*" className="hidden" onChange={onProofFile} />
+                <span className="text-slate-400 text-sm">
+                  {uploadingProof ? "Uploading…" : proofPreview && !proofUploadError ? "✅ Uploaded" : "No proof yet"}
+                </span>
+                <input ref={proofFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onProofFile} />
               </div>
-              {proofPreview && (
+              {proofUploadError && (
+                <p className="text-red-400 text-xs">❌ Upload failed: {proofUploadError}</p>
+              )}
+              {proofPreview && !proofUploadError && (
                 <div className="relative inline-block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={proofPreview} alt="Proof preview" className="h-28 rounded-xl object-cover border border-emerald-700/50" />
-                  <button type="button" onClick={() => { setProofPreview(""); setForm(p => ({ ...p, proofImageUrl: "" })); }}
+                  <button type="button" onClick={() => { setProofPreview(""); setProofUploadError(""); setForm(p => ({ ...p, proofImageUrl: "" })); }}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                     <X size={10} />
                   </button>
                 </div>
               )}
-              <div>
-                <label className="admin-label text-xs text-slate-500">Or paste proof URL</label>
-                <input name="proofImageUrl" value={proofPreview.startsWith("data:") ? "" : form.proofImageUrl}
-                  onChange={e => { onChange(e); setProofPreview(e.target.value); }}
-                  placeholder="https://..." className="admin-input text-xs" />
-              </div>
             </div>
           )}
 
