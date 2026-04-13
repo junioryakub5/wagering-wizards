@@ -78,7 +78,7 @@ function BetSlipImage({ src, alt }: { src: string; alt: string }) {
 // Paystack public key — hardcoded fallback so it's always available
 const PAYSTACK_KEY =
   process.env.NEXT_PUBLIC_PAYSTACK_KEY ||
-  "pk_test_5ea5e36fe127df1e71403fc3d5a558c326767c01";
+  "pk_live_149f5deb5a54340e126e111e9819de2c8de870f9";
 
 // Load Paystack v2 inline.js dynamically (browser-only, never SSR)
 function loadPaystack(): Promise<void> {
