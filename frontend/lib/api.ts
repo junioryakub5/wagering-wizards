@@ -23,6 +23,14 @@ export async function getHistoryPredictions(): Promise<Prediction[]> {
 
 // ─── Payment ──────────────────────────────────────────────────────────────────
 
+export async function initiatePayment(
+  email: string,
+  predictionId: string
+): Promise<{ reference: string; authorization_url: string }> {
+  const res = await api.post("/payment/initiate", { email, predictionId });
+  return res.data;
+}
+
 export async function verifyPayment(
   reference: string,
   predictionId: string,

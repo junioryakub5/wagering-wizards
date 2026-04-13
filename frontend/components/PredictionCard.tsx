@@ -6,7 +6,7 @@ import {
   CheckCircle, Copy, Check, Trophy, RefreshCcw, Mail,
 } from "lucide-react";
 import { Prediction } from "@/lib/types";
-import { verifyPayment, getUnlockedPrediction, restoreAccess } from "@/lib/api";
+import { initiatePayment, verifyPayment, getUnlockedPrediction, restoreAccess } from "@/lib/api";
 
 // Paystack public key — hardcoded fallback so it's always available
 const PAYSTACK_KEY =
@@ -155,7 +155,9 @@ function PaymentModal({
     try {
       await loadPaystack();
 
-      const ref = `WW-${prediction._id}-${Date.now()}`;
+      // Always get reference from backend so Paystack can verify it
+      const { reference: ref } = await initiatePayment(email, prediction._id);
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const popup = new (window as any).PaystackPop();
 
@@ -180,13 +182,14 @@ function PaymentModal({
           settled = true;
           clearTimeout(timeout);
           try {
-            await verifyPayment(transaction.reference, prediction._id, email);
-            await finalizeUnlock(transaction.reference);
+            // Use the reference from initiate (backend-registered)
+            await verifyPayment(ref, prediction._id, email);
+            await finalizeUnlock(ref);
           } catch (err: unknown) {
             const msg =
               (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
               "Verification failed. Contact support.";
-            setError(`${msg} (ref: ${transaction.reference})`);
+            setError(`${msg} (ref: ${ref})`);
             setStep("idle");
           }
         },
