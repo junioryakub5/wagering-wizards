@@ -42,24 +42,44 @@ function BetSlipImage({ src, alt }: { src: string; alt: string }) {
       {/* Lightbox */}
       {open && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)" }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.95)", backdropFilter: "blur(10px)" }}
           onClick={() => setOpen(false)}
         >
+          {/* Close button */}
           <button
             onClick={() => setOpen(false)}
-            className="absolute top-4 right-4 text-white rounded-full w-9 h-9 flex items-center justify-center z-10"
-            style={{ background: "rgba(255,255,255,0.15)" }}
+            className="absolute top-4 right-4 text-white rounded-full w-10 h-10 flex items-center justify-center z-10"
+            style={{ background: "rgba(255,255,255,0.2)" }}
           >
-            <X size={16} />
+            <X size={18} />
           </button>
-          <div onClick={e => e.stopPropagation()} className="relative max-w-2xl w-full">
+
+          {/* Image — pinch/scroll on mobile, fills viewport */}
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full h-full flex items-center justify-center p-4"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt={alt} className="w-full rounded-2xl shadow-2xl object-contain max-h-[85vh]" />
-            <p className="text-center text-gray-400 text-xs mt-3">Tap outside to close</p>
+            <img
+              src={src}
+              alt={alt}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "calc(100vh - 80px)",
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+                borderRadius: "12px",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.8)",
+              }}
+            />
           </div>
+
+          <p className="absolute bottom-4 text-gray-500 text-xs">Tap outside to close</p>
         </div>
       )}
+
     </>
   );
 }
