@@ -22,7 +22,7 @@ function BetSlipImage({ src, alt }: { src: string; alt: string }) {
           style={{ height: "120px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={alt} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+          <img src={src} alt={alt} className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105" />
           <div
             className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             style={{ background: "rgba(0,0,0,0.45)" }}
