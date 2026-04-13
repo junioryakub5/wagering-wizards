@@ -247,21 +247,17 @@ app.get('/api/predictions/history', async (req, res) => {
 });
 
 // ─── Routes: Payment ──────────────────────────────────────────────────────────
+// Initiate: just generate a unique reference — the inline popup creates it own
+// transaction on Paystack using this ref. No server-side initialize needed.
 app.post('/api/payment/initiate', async (req, res) => {
   try {
     const { email, predictionId } = req.body;
     if (!email || !predictionId) return res.status(400).json({ error: 'email and predictionId required' });
     const prediction = await db.findPredictionById(predictionId);
     if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
+    // Just generate a reference — popup will create the Paystack transaction
     const reference = `WW_${uuidv4().replace(/-/g,'').slice(0,16)}`;
-    const paystackRes = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      { email, amount:prediction.price*100, currency:'GHS', reference,
-        callback_url:`${process.env.CLIENT_URL}/unlock/${reference}`,
-        metadata:{ predictionId:predictionId.toString(), predictionTitle:prediction.match } },
-      { headers:{ Authorization:`Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
-    );
-    res.json({ success:true, reference, authorization_url:paystackRes.data.data.authorization_url });
+    res.json({ success:true, reference, amount: prediction.price, currency: 'GHS' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -271,12 +267,23 @@ app.post('/api/payment/verify', async (req, res) => {
     if (!reference || !predictionId) return res.status(400).json({ error: 'reference and predictionId required' });
     const existing = await db.findPayment({ reference, status:'success' });
     if (existing) return res.json({ success:true, reference:existing.reference, accessToken:existing.accessToken, message:'Already verified' });
-    const { data: pRes } = await axios.get(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      { headers:{ Authorization:`Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
-    );
-    const txn = pRes.data;
-    if (!txn || txn.status !== 'success') return res.status(402).json({ error: 'Payment not successful on Paystack' });
+    // Verify the transaction on Paystack
+    let txn;
+    try {
+      const { data: pRes } = await axios.get(
+        `https://api.paystack.co/transaction/verify/${reference}`,
+        { headers:{ Authorization:`Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+      );
+      txn = pRes.data;
+    } catch (axiosErr) {
+      const paystackMsg = axiosErr.response?.data?.message || axiosErr.message;
+      console.error('Paystack verify error:', paystackMsg);
+      return res.status(402).json({ error: `Paystack: ${paystackMsg}` });
+    }
+    console.log('Paystack txn status:', txn?.status, '| ref:', reference);
+    if (!txn || txn.status !== 'success') {
+      return res.status(402).json({ error: `Payment status: ${txn?.status || 'unknown'}. Not successful.` });
+    }
     const prediction = await db.findPredictionById(predictionId);
     if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
     const accessToken = uuidv4();
@@ -286,7 +293,10 @@ app.post('/api/payment/verify', async (req, res) => {
       currency:txn.currency||'GHS', status:'success', accessToken,
     });
     res.json({ success:true, reference, accessToken });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('Verify route error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/payment/restore', async (req, res) => {
