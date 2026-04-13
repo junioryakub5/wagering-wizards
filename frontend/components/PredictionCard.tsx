@@ -1,12 +1,68 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import React from "react";
 import {
   Calendar, Lock, X, Loader2, Shield, Zap,
   CheckCircle, Copy, Check, Trophy, RefreshCcw, Mail,
 } from "lucide-react";
 import { Prediction } from "@/lib/types";
 import { initiatePayment, verifyPayment, getUnlockedPrediction, restoreAccess } from "@/lib/api";
+
+// ── Bet slip image thumbnail + lightbox ────────────────────────────────────────
+function BetSlipImage({ src, alt }: { src: string; alt: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <div className="px-5 pt-3">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="relative w-full rounded-xl overflow-hidden group cursor-zoom-in"
+          style={{ height: "120px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={alt} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+          <div
+            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+          >
+            <span
+              className="text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5"
+              style={{ background: "rgba(240,180,41,0.85)" }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              View Full Slip
+            </span>
+          </div>
+        </button>
+        <p className="text-center text-[10px] text-gray-500 mt-1.5">Tap to view full bet slip</p>
+      </div>
+
+      {/* Lightbox */}
+      {open && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)" }}
+          onClick={() => setOpen(false)}
+        >
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-4 right-4 text-white rounded-full w-9 h-9 flex items-center justify-center z-10"
+            style={{ background: "rgba(255,255,255,0.15)" }}
+          >
+            <X size={16} />
+          </button>
+          <div onClick={e => e.stopPropagation()} className="relative max-w-2xl w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt={alt} className="w-full rounded-2xl shadow-2xl object-contain max-h-[85vh]" />
+            <p className="text-center text-gray-400 text-xs mt-3">Tap outside to close</p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 // Paystack public key — hardcoded fallback so it's always available
 const PAYSTACK_KEY =
@@ -442,13 +498,13 @@ function UnlockedCard({ prediction, unlocked }: { prediction: Prediction; unlock
         </span>
       </div>
 
-      {/* Bet-slip image if available */}
+      {/* Bet-slip image — compact thumbnail, tap to view full */}
       {unlocked.imageUrl && (
-        <div className="w-full overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={unlocked.imageUrl} alt={`Bet slip – ${prediction.match}`} className="w-full object-contain" />
-        </div>
+        <BetSlipImage src={unlocked.imageUrl} alt={`Bet slip – ${prediction.match}`} />
       )}
+
+
+
 
       {/* Info */}
       <div className="px-5 pt-4">
