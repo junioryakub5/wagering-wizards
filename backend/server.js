@@ -540,9 +540,9 @@ app.post('/api/admin/predictions', adminAuth, async (req, res) => {
     const { match, league, odds, oddsCategory, price, content, bookingCode, tips,
             imageUrl, proofImageUrl, date, status, result, startDay, endDay } = req.body;
 
-    // Input validation
-    if (!match || !league || !odds || !oddsCategory || !price || !date) {
-      return res.status(400).json({ error: 'Missing required fields: match, league, odds, oddsCategory, price, date' });
+    // Input validation — only truly required fields block saving
+    if (!match || !price || !date) {
+      return res.status(400).json({ error: 'Missing required fields: match, price, date' });
     }
     if (isNaN(Number(price)) || Number(price) <= 0) {
       return res.status(400).json({ error: 'Price must be a positive number' });

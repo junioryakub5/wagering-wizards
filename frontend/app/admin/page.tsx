@@ -650,7 +650,11 @@ function ManageSlipsSection({ token }: { token: string }) {
       else { await adminCreatePrediction(token, payload); showToast("ok", "Slip created!"); }
       setShowModal(false); setEditing(null);
       await load();
-    } catch { showToast("err", "Failed to save."); }
+    } catch (err: unknown) {
+      const serverMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      showToast("err", serverMsg || "Failed to save. Check console for details.");
+      console.error("Save prediction error:", err);
+    }
     finally { setSaving(false); }
   };
 
