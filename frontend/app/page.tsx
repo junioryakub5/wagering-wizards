@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Filter, BarChart2, ShieldCheck, Zap, Loader2, CalendarX2 } from "lucide-react";
+import { Filter, BarChart2, ShieldCheck, Zap, Loader2, CalendarX2, Wand2, Sparkles } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PredictionCard from "@/components/PredictionCard";
@@ -65,66 +65,36 @@ export default function HomePage() {
 
           <div className="page-container relative z-10 text-center flex flex-col items-center">
 
-            {/* Badge */}
+            {/* Brand Icon */}
             <div className="flex justify-center mb-5 animate-fadeInUp">
-              <div className="hero-badge">
-                <span
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: "#cba33d",
-                    boxShadow: "0 0 8px #cba33d",
-                    display: "inline-block",
-                    animation: "pulse 2s infinite",
-                  }}
+              <div
+                className="relative w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, rgba(203,163,61,0.15), rgba(232,192,90,0.08))",
+                  border: "1px solid rgba(203,163,61,0.25)",
+                  boxShadow: "0 0 40px rgba(203,163,61,0.15)",
+                }}
+              >
+                <Wand2 size={36} style={{ color: "#cba33d" }} strokeWidth={1.5} />
+                <Sparkles
+                  size={16}
+                  className="absolute -top-2 -right-2 animate-bounce"
+                  style={{ color: "#e8c05a" }}
                 />
-                Premium Football Predictions
               </div>
             </div>
 
             {/* Headline */}
-            <h1
-              className="animate-fadeInUp"
-              style={{
-                fontFamily: "'Sora', sans-serif",
-                fontWeight: 900,
-                fontSize: "clamp(2.2rem, 7vw, 5.5rem)",
-                lineHeight: 1,
-                letterSpacing: "-0.03em",
-                color: "#f4f4f5",
-                maxWidth: "900px",
-                marginBottom: "1.5rem",
-                textTransform: "uppercase",
-              }}
-            >
-              YOU CAN&apos;T BE{" "}
+            <h1 className="section-title mb-3 animate-fadeInUp">
+              This Week&apos;s{" "}
               <span
+                className="bg-clip-text text-transparent animate-shimmer"
                 style={{
-                  background: "linear-gradient(135deg, #cba33d 0%, #e8c05a 50%, #f5d37a 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  filter: "drop-shadow(0 0 30px rgba(203,163,61,0.5))",
-                  display: "inline-block",
+                  backgroundImage: "linear-gradient(90deg, #cba33d, #e8c05a, #cba33d, #e8c05a)",
+                  backgroundSize: "300% 100%",
                 }}
               >
-                UNLUCKY
-              </span>
-              <br />
-              <span
-                style={{
-                  fontSize: "clamp(1.6rem, 5.5vw, 4.2rem)",
-                  color: "#a1a1aa",
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                FOR{" "}
-                <span style={{ color: "#f4f4f5", fontWeight: 900, fontSize: "clamp(2.2rem, 7vw, 5.5rem)" }}>
-                  365
-                </span>{" "}
-                DAYS
+                Featured Tips
               </span>
             </h1>
 
@@ -139,8 +109,8 @@ export default function HomePage() {
                 fontWeight: 500,
               }}
             >
-              Expert-verified football tips. Unlock the slip, place the bet,{" "}
-              <span style={{ color: "#cba33d", fontWeight: 700 }}>collect the money.</span>
+              Unlock premium predictions with guaranteed odds.{" "}
+              <span style={{ color: "#cba33d", fontWeight: 700 }}>Expert analysis for every match.</span>
             </p>
 
             {/* Stats Row */}
