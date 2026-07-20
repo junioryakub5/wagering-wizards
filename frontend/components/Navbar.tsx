@@ -91,10 +91,10 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden transition-all duration-300 overflow-hidden ${mobileOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}
+        className={`md:hidden transition-all duration-300 overflow-hidden ${mobileOpen ? "max-h-80 opacity-100 pointer-events-auto" : "max-h-0 opacity-0 pointer-events-none"}`}
         style={{
           background: "#0d0d11",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: mobileOpen ? "1px solid rgba(255,255,255,0.06)" : "none",
         }}
       >
         <div className="page-container py-5 flex flex-col gap-1">
