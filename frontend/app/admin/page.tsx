@@ -242,91 +242,175 @@ function OverviewSection({ token }: { token: string }) {
   );
   if (!stats) return <div className="text-slate-400 py-24 text-center">Failed to load stats.</div>;
 
-  const statCards = [
-    { label: "Total Slips", value: stats.totalSlips, icon: FileText, color: "text-orange-400" },
-    { label: "Active Slips", value: stats.activeSlips, icon: Activity, color: "text-green-400" },
-    { label: "Total Revenue", value: `GHS ${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-400", wide: true },
-    { label: "Total Sales", value: stats.totalSales, icon: TrendingUp, color: "text-green-400" },
-  ];
-
   return (
-    <div className="space-y-6">
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        {statCards.map(s => (
-          <div key={s.label} className="admin-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-slate-400 text-sm">{s.label}</span>
-              <s.icon size={20} className={s.color} />
+    <div className="space-y-4">
+
+      {/* ── Top revenue cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Total Revenue — hero card */}
+        <div
+          className="md:col-span-1 rounded-2xl p-5 flex flex-col justify-between"
+          style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#52525b", fontFamily: "'Sora', sans-serif", letterSpacing: "0.1em" }}>Total Revenue</p>
+            <p className="font-black" style={{ fontFamily: "'Sora', sans-serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", color: "#22c55e", letterSpacing: "-0.02em", lineHeight: 1 }}>
+              GHS {stats.totalRevenue.toFixed(2)}
+            </p>
+            <p className="text-xs mt-2" style={{ color: "#52525b" }}>{stats.totalSales} total sales</p>
+          </div>
+          <div className="mt-4 h-1 rounded-full overflow-hidden" style={{ background: "rgba(34,197,94,0.15)" }}>
+            <div className="h-full rounded-full" style={{ width: "100%", background: "linear-gradient(90deg, #22c55e, #4ade80)" }} />
+          </div>
+        </div>
+
+        {/* Active Slips */}
+        <div
+          className="rounded-2xl p-5 flex flex-col justify-between"
+          style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#52525b", fontFamily: "'Sora', sans-serif", letterSpacing: "0.1em" }}>Active Slips</p>
+            <p className="font-black" style={{ fontFamily: "'Sora', sans-serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", color: "#cba33d", letterSpacing: "-0.02em", lineHeight: 1 }}>
+              {stats.activeSlips}
+            </p>
+            <p className="text-xs mt-2" style={{ color: "#52525b" }}>Currently live</p>
+          </div>
+          <div className="mt-4 h-1 rounded-full overflow-hidden" style={{ background: "rgba(203,163,61,0.15)" }}>
+            <div className="h-full rounded-full" style={{ width: stats.totalSlips > 0 ? `${(stats.activeSlips / stats.totalSlips) * 100}%` : "0%", background: "linear-gradient(90deg, #cba33d, #e8c05a)" }} />
+          </div>
+        </div>
+
+        {/* Completed Slips */}
+        <div
+          className="rounded-2xl p-5 flex flex-col justify-between"
+          style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#52525b", fontFamily: "'Sora', sans-serif", letterSpacing: "0.1em" }}>Completed</p>
+            <p className="font-black" style={{ fontFamily: "'Sora', sans-serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", color: "#a78bfa", letterSpacing: "-0.02em", lineHeight: 1 }}>
+              {stats.completedSlips}
+            </p>
+            <p className="text-xs mt-2" style={{ color: "#52525b" }}>All time</p>
+          </div>
+          <div className="mt-4 h-1 rounded-full overflow-hidden" style={{ background: "rgba(167,139,250,0.15)" }}>
+            <div className="h-full rounded-full" style={{ width: stats.totalSlips > 0 ? `${(stats.completedSlips / stats.totalSlips) * 100}%` : "0%", background: "linear-gradient(90deg, #a78bfa, #c4b5fd)" }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Compact stat row ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total Slips",   value: stats.totalSlips,   color: "#f4f4f5",  icon: FileText  },
+          { label: "Total Sales",   value: stats.totalSales,   color: "#22c55e",  icon: TrendingUp },
+          { label: "Win Rate",      value: "N/A",              color: "#cba33d",  icon: Activity  },
+          { label: "Avg Sale",      value: stats.totalSales > 0 ? `GHS ${(stats.totalRevenue / stats.totalSales).toFixed(0)}` : "GHS 0", color: "#60a5fa", icon: DollarSign },
+        ].map(s => (
+          <div
+            key={s.label}
+            className="rounded-2xl p-4 flex items-center justify-between"
+            style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <div>
+              <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#3f3f46", fontFamily: "'Sora', sans-serif", letterSpacing: "0.08em" }}>{s.label}</p>
+              <p className="font-black text-lg" style={{ color: s.color, fontFamily: "'Sora', sans-serif", lineHeight: 1 }}>{String(s.value)}</p>
             </div>
-            <div className="text-white text-2xl font-bold">{s.value}</div>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <s.icon size={16} style={{ color: s.color, opacity: 0.7 }} />
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Revenue breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="admin-card p-5">
+      {/* ── Country breakdown ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="rounded-2xl p-5" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Globe2 size={18} className="text-green-400" />
-              <h3 className="text-white font-semibold">Ghana Payments</h3>
+              <span className="text-lg">🇬🇭</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#52525b", fontFamily: "'Sora', sans-serif" }}>Ghana (Paystack)</p>
+              </div>
             </div>
-            <DollarSign size={18} className="text-green-400" />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
+              <DollarSign size={14} style={{ color: "#22c55e" }} />
+            </div>
           </div>
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-400">Revenue:</span>
-            <span className="text-green-400 font-bold">GHS {stats.totalRevenue.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Sales:</span>
-            <span className="text-white font-semibold">{stats.totalSales}</span>
+          <div className="space-y-2.5">
+            <div className="flex justify-between text-sm">
+              <span style={{ color: "#52525b" }}>All time</span>
+              <span className="font-black" style={{ color: "#22c55e", fontFamily: "'Sora', sans-serif" }}>GHS {stats.totalRevenue.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span style={{ color: "#52525b" }}>Total sales</span>
+              <span className="font-semibold" style={{ color: "#a1a1aa" }}>{stats.totalSales}</span>
+            </div>
           </div>
         </div>
-        <div className="admin-card p-5">
+
+        <div className="rounded-2xl p-5" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <BarChart2 size={18} className="text-orange-400" />
-              <h3 className="text-white font-semibold">Slip Overview</h3>
+              <span className="text-lg">📊</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#52525b", fontFamily: "'Sora', sans-serif" }}>Slip Overview</p>
+              </div>
             </div>
-            <FileText size={18} className="text-orange-400" />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(203,163,61,0.1)", border: "1px solid rgba(203,163,61,0.2)" }}>
+              <BarChart2 size={14} style={{ color: "#cba33d" }} />
+            </div>
           </div>
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-400">Active:</span>
-            <span className="text-amber-400 font-bold">{stats.activeSlips}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-400">Completed:</span>
-            <span className="text-slate-300 font-semibold">{stats.completedSlips}</span>
+          <div className="space-y-2.5">
+            <div className="flex justify-between text-sm">
+              <span style={{ color: "#52525b" }}>Active</span>
+              <span className="font-black" style={{ color: "#cba33d", fontFamily: "'Sora', sans-serif" }}>{stats.activeSlips}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span style={{ color: "#52525b" }}>Completed</span>
+              <span className="font-semibold" style={{ color: "#a1a1aa" }}>{stats.completedSlips}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="admin-card overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-700/60">
-          <h3 className="text-white font-semibold">Recent Activity</h3>
+      {/* ── Recent Payments ── */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}>
+        <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <p className="font-bold text-sm" style={{ color: "#f4f4f5", fontFamily: "'Sora', sans-serif" }}>Recent Payments</p>
+          <span className="text-xs" style={{ color: "#3f3f46" }}>{stats.recentActivity.length} shown</span>
         </div>
         {stats.recentActivity.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 text-sm">No payment activity yet.</div>
+          <div className="py-12 text-center text-sm" style={{ color: "#52525b" }}>No payment activity yet.</div>
         ) : (
-          <div className="divide-y divide-slate-700/40">
-            {stats.recentActivity.map(act => (
-              <div key={act._id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-800/40 transition-colors">
+          <div>
+            {stats.recentActivity.map((act, i) => (
+              <div
+                key={act._id}
+                className="flex items-center justify-between px-5 py-3.5 transition-colors"
+                style={{
+                  borderBottom: i < stats.recentActivity.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                    style={{ background: "rgba(203,163,61,0.12)", border: "1px solid rgba(203,163,61,0.2)", color: "#cba33d", fontFamily: "'Sora', sans-serif" }}
+                  >
                     {act.email[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-white text-sm font-medium">{act.email}</p>
-                    <p className="text-slate-500 text-xs">{act.predictionTitle}</p>
+                    <p className="text-sm font-medium" style={{ color: "#f4f4f5" }}>{act.email}</p>
+                    <p className="text-xs" style={{ color: "#52525b" }}>{act.predictionTitle}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${act.status === "success" ? "text-green-400" : "text-amber-400"}`}>
+                  <p className="text-sm font-black" style={{ color: act.status === "success" ? "#22c55e" : "#f59e0b", fontFamily: "'Sora', sans-serif" }}>
                     {act.currency} {act.amount}
                   </p>
-                  <p className="text-slate-500 text-xs">{act.status}</p>
+                  <p className="text-xs" style={{ color: "#3f3f46" }}>{act.status}</p>
                 </div>
               </div>
             ))}
@@ -413,14 +497,23 @@ function SlipModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
       <div
-        className="relative w-full max-w-xl bg-[#1a2035] border border-slate-700/60 rounded-2xl shadow-2xl overflow-y-auto max-h-[90vh]"
+        className="relative w-full max-w-xl rounded-2xl shadow-2xl overflow-y-auto max-h-[90vh]"
+        style={{ background: "#0d0d11", border: "1px solid rgba(255,255,255,0.07)", boxShadow: "0 32px 80px rgba(0,0,0,0.8)" }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60">
-          <h2 className="text-white font-bold text-lg">{editing ? "Edit Slip" : "Add New Slip"}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={20} /></button>
+        {/* Gold top strip */}
+        <div style={{ height: "2px", background: "linear-gradient(90deg, #cba33d, #e8c05a, #cba33d)" }} />
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <h2 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "1.05rem", color: "#f4f4f5" }}>
+            {editing ? "Edit Slip" : "Add New Slip"}
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{ color: "#52525b" }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "#f4f4f5")}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "#52525b")}>
+            <X size={18} />
+          </button>
         </div>
 
         <form onSubmit={e => { e.preventDefault(); onSave(form); }} className="p-6 space-y-4">
@@ -875,14 +968,14 @@ function PaymentsSection({ token }: { token: string }) {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
         <div className="relative flex-1 max-w-xs">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#52525b" }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search payments..." className="admin-input pl-9 text-sm" />
         </div>
-        <div className="text-slate-400 text-sm">{total} total transactions</div>
+        <div className="text-sm" style={{ color: "#52525b" }}>{total} total transactions</div>
       </div>
 
-      <div className="admin-card overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.18)" }}>
@@ -890,62 +983,72 @@ function PaymentsSection({ token }: { token: string }) {
             </div>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-slate-500 text-sm">No payments found.</div>
+          <div className="py-16 text-center text-sm" style={{ color: "#52525b" }}>No payments found.</div>
         ) : (
           <>
-            {/* Mobile card list */}
-            <div className="md:hidden divide-y divide-slate-700/30">
-              {filtered.map(pmt => (
-                <div key={pmt._id} className="px-4 py-4">
+            {/* Mobile list */}
+            <div className="md:hidden">
+              {filtered.map((pmt, i) => (
+                <div key={pmt._id} className="px-4 py-4"
+                  style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                        style={{ background: "rgba(203,163,61,0.12)", border: "1px solid rgba(203,163,61,0.2)", color: "#cba33d", fontFamily: "'Sora', sans-serif" }}>
                         {pmt.email[0].toUpperCase()}
                       </div>
-                      <span className="text-slate-200 text-sm truncate max-w-[160px]">{pmt.email}</span>
+                      <span className="text-sm truncate max-w-[160px]" style={{ color: "#f4f4f5" }}>{pmt.email}</span>
                     </div>
-                    <span className={`font-bold text-sm ${pmt.status === "success" ? "text-green-400" : "text-amber-400"}`}>
+                    <span className="font-black text-sm" style={{ color: pmt.status === "success" ? "#22c55e" : "#f59e0b", fontFamily: "'Sora', sans-serif" }}>
                       {pmt.currency} {pmt.amount}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5 ml-9">
                     <StatusBadge status={pmt.status} />
-                    <span className="text-slate-500 text-xs truncate">{pmt.predictionTitle}</span>
-                    <span className="text-slate-600 text-xs ml-auto">{new Date(pmt.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+                    <span className="text-xs truncate" style={{ color: "#52525b" }}>{pmt.predictionTitle}</span>
+                    <span className="text-xs ml-auto" style={{ color: "#3f3f46" }}>{new Date(pmt.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
                   </div>
                 </div>
               ))}
             </div>
+
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-700/60">
+                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                     {["Customer", "Slip", "Reference", "Amount", "Status", "Date"].map(h => (
-                      <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="px-5 py-3.5 text-left"
+                        style={{ fontSize: "0.65rem", fontWeight: 700, color: "#3f3f46", textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "'Sora', sans-serif" }}>
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700/30">
-                  {filtered.map(pmt => (
-                    <tr key={pmt._id} className="hover:bg-slate-800/30 transition-colors">
+                <tbody>
+                  {filtered.map((pmt, i) => (
+                    <tr key={pmt._id}
+                      style={{ borderBottom: i < filtered.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
+                            style={{ background: "rgba(203,163,61,0.12)", border: "1px solid rgba(203,163,61,0.2)", color: "#cba33d", fontFamily: "'Sora', sans-serif" }}>
                             {pmt.email[0].toUpperCase()}
                           </div>
-                          <span className="text-slate-200 text-sm">{pmt.email}</span>
+                          <span className="text-sm" style={{ color: "#f4f4f5" }}>{pmt.email}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-slate-300 text-sm max-w-[160px] truncate">{pmt.predictionTitle}</td>
-                      <td className="px-5 py-4 text-slate-500 text-xs font-mono">{pmt.reference}</td>
+                      <td className="px-5 py-4 text-sm max-w-[160px] truncate" style={{ color: "#a1a1aa" }}>{pmt.predictionTitle}</td>
+                      <td className="px-5 py-4 text-xs font-mono" style={{ color: "#3f3f46" }}>{pmt.reference}</td>
                       <td className="px-5 py-4">
-                        <span className={`font-bold text-sm ${pmt.status === "success" ? "text-green-400" : "text-amber-400"}`}>
+                        <span className="font-black text-sm" style={{ color: pmt.status === "success" ? "#22c55e" : "#f59e0b", fontFamily: "'Sora', sans-serif" }}>
                           {pmt.currency} {pmt.amount}
                         </span>
                       </td>
                       <td className="px-5 py-4"><StatusBadge status={pmt.status} /></td>
-                      <td className="px-5 py-4 text-slate-500 text-xs">
+                      <td className="px-5 py-4 text-xs" style={{ color: "#52525b" }}>
                         {new Date(pmt.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
                     </tr>
@@ -953,7 +1056,8 @@ function PaymentsSection({ token }: { token: string }) {
                 </tbody>
               </table>
             </div>
-            <div className="px-4 md:px-5 py-3 border-t border-slate-700/40 text-xs text-slate-500">
+
+            <div className="px-5 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)", fontSize: "0.7rem", color: "#3f3f46" }}>
               {total} total payments
             </div>
           </>
