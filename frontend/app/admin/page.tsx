@@ -1092,64 +1092,76 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   const SidebarContent = () => (
     <>
       {/* Brand */}
-      <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div>
-          <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "1.05rem", textTransform: "uppercase", letterSpacing: "-0.02em", color: "#f4f4f5" }}>
-            Wagering{" "}<span style={{ background: "linear-gradient(135deg,#cba33d,#e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Wizards</span>
+      <div className="px-5 py-6 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(203,163,61,0.1)", border: "1px solid rgba(203,163,61,0.3)", boxShadow: "0 0 10px rgba(203,163,61,0.12)" }}
+          >
+            <Wand2 size={16} style={{ color: "#cba33d" }} strokeWidth={1.5} />
           </div>
-          <div className="text-xs mt-0.5" style={{ color: "rgba(203,163,61,0.5)", fontFamily: "'Sora', sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>Admin Panel</div>
+          <div>
+            <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "0.9rem", letterSpacing: "-0.02em", color: "#f4f4f5", lineHeight: 1 }}>
+              Wagering<span style={{ color: "#cba33d" }}> Wizards</span>
+            </div>
+            <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#3f3f46", marginTop: "2px", fontFamily: "'Sora', sans-serif" }}>Admin Portal</div>
+          </div>
         </div>
-        {/* Close button — only visible in drawer */}
+        {/* Close button — only visible in mobile drawer */}
         <button
-          className="md:hidden p-1.5 transition-colors"
+          className="md:hidden p-1.5 transition-colors rounded-lg"
           style={{ color: "#52525b" }}
           onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "#f4f4f5")}
           onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "#52525b")}
           onClick={() => setDrawerOpen(false)}
         >
-          <X size={20} />
+          <X size={18} />
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 space-y-0.5 px-2">
+      <nav className="flex-1 py-3 px-3 space-y-0.5">
         {navItems.map(item => (
           <button
             key={item.id}
             onClick={() => goTo(item.id)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-150"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 group relative"
             style={section === item.id ? {
-              background: "rgba(203,163,61,0.1)",
+              background: "rgba(203,163,61,0.08)",
               color: "#cba33d",
-              border: "1px solid rgba(203,163,61,0.2)",
               fontFamily: "'Sora', sans-serif",
               fontWeight: 600,
-              letterSpacing: "0.01em",
             } : {
               color: "#52525b",
-              border: "1px solid transparent",
               fontFamily: "'Sora', sans-serif",
               fontWeight: 500,
             }}
-            onMouseEnter={e => { if (section !== item.id) { (e.currentTarget as HTMLElement).style.color = "#a1a1aa"; } }}
-            onMouseLeave={e => { if (section !== item.id) { (e.currentTarget as HTMLElement).style.color = "#52525b"; } }}
+            onMouseEnter={e => { if (section !== item.id) (e.currentTarget as HTMLElement).style.color = "#a1a1aa"; }}
+            onMouseLeave={e => { if (section !== item.id) (e.currentTarget as HTMLElement).style.color = "#52525b"; }}
           >
-            <item.icon size={17} />
+            {/* Active indicator dot */}
+            {section === item.id && (
+              <span
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full"
+                style={{ height: "20px", background: "#cba33d", boxShadow: "0 0 6px rgba(203,163,61,0.6)" }}
+              />
+            )}
+            <item.icon size={16} />
             {item.label}
           </button>
         ))}
       </nav>
 
       {/* Logout */}
-      <div className="px-2 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div className="px-3 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all"
-          style={{ color: "#52525b", fontFamily: "'Sora', sans-serif", fontWeight: 500, border: "1px solid transparent" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#f87171"; (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.06)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,0.15)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#52525b"; (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.borderColor = "transparent"; }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
+          style={{ color: "#52525b", fontFamily: "'Sora', sans-serif", fontWeight: 500 }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#f87171"; (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.06)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#52525b"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
         >
-          <LogOut size={17} />
+          <LogOut size={16} />
           Logout
         </button>
       </div>
@@ -1159,7 +1171,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   return (
     <div className="min-h-screen flex flex-col md:flex-row" style={{ background: "#09090b" }}>
 
-      {/* ── Mobile drawer overlay ── */}
+      {/* Mobile drawer overlay */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
@@ -1167,55 +1179,83 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
         />
       )}
 
-      {/* ── Mobile drawer ── */}
+      {/* Mobile drawer */}
       <div
-        className={`fixed top-0 left-0 h-full z-50 flex flex-col w-72 transition-transform duration-300 md:hidden ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{ background: "#0d0d11", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+        className={`fixed top-0 left-0 h-full z-50 flex flex-col w-64 transition-transform duration-300 md:hidden ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ background: "#0d0d11", borderRight: "1px solid rgba(255,255,255,0.05)" }}
       >
         <SidebarContent />
       </div>
 
-      {/* ── Desktop sidebar ── */}
+      {/* Desktop sidebar — 365 Analyst style: slim, dark */}
       <aside
-        className="hidden md:flex w-60 flex-shrink-0 flex-col"
-        style={{ background: "#0d0d11", borderRight: "1px solid rgba(255,255,255,0.06)" }}
+        className="hidden md:flex w-56 flex-shrink-0 flex-col sticky top-0 h-screen"
+        style={{ background: "#0d0d11", borderRight: "1px solid rgba(255,255,255,0.05)" }}
       >
         <SidebarContent />
       </aside>
 
-      {/* ── Main area ── */}
+      {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Mobile top header */}
         <header
           className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: "rgba(9,9,11,0.92)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "saturate(180%) blur(20px)" }}
+          style={{ background: "rgba(9,9,11,0.95)", borderBottom: "1px solid rgba(255,255,255,0.05)", backdropFilter: "saturate(180%) blur(20px)" }}
         >
           <button
             onClick={() => setDrawerOpen(true)}
-            className="p-2 rounded-xl transition-colors"
-            style={{ color: "#a1a1aa", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            className="p-2 rounded-xl"
+            style={{ color: "#a1a1aa", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             <Menu size={20} />
           </button>
-          <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "1rem", textTransform: "uppercase", letterSpacing: "-0.02em", color: "#f4f4f5" }}>
-            Wagering <span style={{ background: "linear-gradient(135deg,#cba33d,#e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Wizards</span>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em", color: "#f4f4f5" }}>
+            Wagering <span style={{ color: "#cba33d" }}>Wizards</span>
           </div>
           <button
             onClick={onLogout}
-            className="p-2 rounded-xl transition-colors"
-            style={{ color: "#a1a1aa", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+            className="p-2 rounded-xl"
+            style={{ color: "#a1a1aa", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
             title="Logout"
           >
             <LogOut size={18} />
           </button>
         </header>
 
+        {/* Desktop section header — like 365Analyst */}
+        <div
+          className="hidden md:flex items-center justify-between px-8 py-5"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+        >
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#3f3f46", fontFamily: "'Sora', sans-serif" }}>Admin</span>
+              <span style={{ color: "#3f3f46", fontSize: "0.6rem" }}>›</span>
+              <span style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#52525b", fontFamily: "'Sora', sans-serif" }}>{sectionTitle[section]}</span>
+            </div>
+            <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "1.35rem", letterSpacing: "-0.02em", color: "#f4f4f5", lineHeight: 1 }}>
+              {sectionTitle[section]}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.2)" }}
+            >
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#cba33d", boxShadow: "0 0 6px #cba33d", display: "inline-block" }} />
+              <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#cba33d", fontFamily: "'Sora', sans-serif" }}>Live</span>
+            </div>
+          </div>
+        </div>
+
         {/* Main content */}
         <main className="flex-1 overflow-y-auto pb-24 md:pb-0">
           <div className="px-4 md:px-8 py-5 md:py-7 max-w-6xl">
+            {/* Mobile section title */}
             <h1
-              style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "clamp(1.3rem,4vw,1.8rem)", textTransform: "uppercase", letterSpacing: "-0.02em", color: "#f4f4f5", marginBottom: "1.5rem" }}
+              className="md:hidden mb-5"
+              style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "1.25rem", letterSpacing: "-0.02em", color: "#f4f4f5" }}
             >
               {sectionTitle[section]}
             </h1>
@@ -1225,10 +1265,10 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
           </div>
         </main>
 
-        {/* ── Mobile bottom tab bar ── */}
+        {/* Mobile bottom tab bar */}
         <nav
           className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex"
-          style={{ background: "rgba(9,9,11,0.97)", borderTop: "1px solid rgba(255,255,255,0.06)", backdropFilter: "saturate(180%) blur(20px)" }}
+          style={{ background: "rgba(9,9,11,0.97)", borderTop: "1px solid rgba(255,255,255,0.05)", backdropFilter: "saturate(180%) blur(20px)" }}
         >
           {navItems.map(item => (
             <button
