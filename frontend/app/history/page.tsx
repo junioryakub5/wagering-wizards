@@ -39,12 +39,34 @@ export default function HistoryPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-24 pb-16 relative z-10">
+      <main
+        className="min-h-screen pt-20 pb-16 relative z-10"
+        style={{ background: "#09090b" }}
+      >
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute top-0 inset-x-0" aria-hidden="true">
+          <div style={{ position: "absolute", top: "-10%", right: "-5%", width: "500px", height: "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(203,163,61,0.1) 0%, transparent 70%)", filter: "blur(60px)" }} />
+        </div>
+
         <div className="page-container">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="font-brand text-3xl font-bold mb-2">Past Results</h1>
-            <p className="text-gray-400">Our winning history and proven track record</p>
+          <div className="pt-10 mb-10 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="hero-badge">
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#cba33d", boxShadow: "0 0 8px #cba33d", display: "inline-block" }} />
+                Prediction History
+              </div>
+            </div>
+            <h1
+              style={{ fontFamily: "'Sora', sans-serif", fontWeight: 900, fontSize: "clamp(2rem, 6vw, 4rem)", letterSpacing: "-0.03em", textTransform: "uppercase", color: "#f4f4f5", lineHeight: 1.05 }}
+              className="mb-3"
+            >
+              Past{" "}
+              <span className="gradient-text-gold">Results</span>
+            </h1>
+            <p style={{ color: "#52525b" }} className="text-sm max-w-sm mx-auto">
+              Our winning history and proven track record
+            </p>
           </div>
 
           {/* Stats Banner */}
@@ -52,68 +74,67 @@ export default function HistoryPage() {
             <div
               className="rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center gap-6"
               style={{
-                background:
-                  "linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.2) 100%)",
-                border: "1px solid rgba(16,185,129,0.25)",
+                background: "rgba(17,17,23,0.85)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                backdropFilter: "blur(16px)",
               }}
             >
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(16,185,129,0.2)" }}
+                  style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.18)" }}
                 >
-                  <TrendingUp size={22} className="text-emerald" />
+                  <TrendingUp size={22} style={{ color: "#22c55e" }} />
                 </div>
                 <div>
-                  <h2 className="font-bold text-lg">Proven Success</h2>
-                  <p className="text-gray-400 text-sm">
+                  <h2 className="font-bold text-lg" style={{ color: "#f4f4f5" }}>Proven Success</h2>
+                  <p className="text-sm" style={{ color: "#52525b" }}>
                     Join thousands who trust Wagering Wizards
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-8 md:ml-auto">
                 <div className="text-center">
-                  <p className="text-2xl font-black text-emerald">{winRate}%</p>
-                  <p className="text-xs text-gray-400">Win Rate</p>
+                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#22c55e" }}>{winRate}%</p>
+                  <p className="text-xs" style={{ color: "#3f3f46" }}>Win Rate</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-black text-emerald">{wins}</p>
-                  <p className="text-xs text-gray-400">Wins</p>
+                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#22c55e" }}>{wins}</p>
+                  <p className="text-xs" style={{ color: "#3f3f46" }}>Wins</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-black text-red-400">{losses}</p>
-                  <p className="text-xs text-gray-400">Losses</p>
+                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#ef4444" }}>{losses}</p>
+                  <p className="text-xs" style={{ color: "#3f3f46" }}>Losses</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-black text-gold">{predictions.length}</p>
-                  <p className="text-xs text-gray-400">Total</p>
+                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#cba33d" }}>{predictions.length}</p>
+                  <p className="text-xs" style={{ color: "#3f3f46" }}>Total</p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Filter Tabs */}
-          <div className="flex gap-3 mb-8">
+          <div className="flex gap-2 mb-8">
             {(["all", "win", "loss"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`text-sm font-semibold px-5 py-2 rounded-full border capitalize transition-all duration-200 ${
-                  filter === f
-                    ? f === "win"
-                      ? "bg-emerald text-white border-transparent"
-                      : f === "loss"
-                      ? "bg-red-500 text-white border-transparent"
-                      : "bg-gradient-to-r from-gold to-amber text-bg-primary border-transparent"
-                    : "border-white/10 text-gray-400 hover:border-white/20"
-                }`}
-                style={filter === f ? {} : { background: "rgba(25,20,60,0.6)" }}
+                className="text-xs font-bold px-5 py-2.5 rounded-full border transition-all duration-200 capitalize"
+                style={filter === f
+                  ? f === "win"
+                    ? { background: "rgba(34,197,94,0.15)", color: "#22c55e", borderColor: "rgba(34,197,94,0.3)", boxShadow: "0 4px 14px rgba(34,197,94,0.15)" }
+                    : f === "loss"
+                    ? { background: "rgba(239,68,68,0.15)", color: "#ef4444", borderColor: "rgba(239,68,68,0.3)", boxShadow: "0 4px 14px rgba(239,68,68,0.15)" }
+                    : { background: "linear-gradient(135deg, #cba33d, #e8c05a)", color: "#09090b", borderColor: "transparent", boxShadow: "0 4px 20px rgba(203,163,61,0.35)" }
+                  : { background: "rgba(255,255,255,0.03)", color: "#52525b", borderColor: "rgba(255,255,255,0.07)" }
+                }
               >
-              {f === "all"
-                ? "All Results"
-                : f === "win"
-                ? <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="flex-shrink-0" />Wins</span>
-                : <span className="flex items-center gap-1.5"><XCircle size={13} className="flex-shrink-0" />Losses</span>}
+                {f === "all"
+                  ? "All Results"
+                  : f === "win"
+                  ? <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="flex-shrink-0" />Wins</span>
+                  : <span className="flex items-center gap-1.5"><XCircle size={13} className="flex-shrink-0" />Losses</span>}
               </button>
             ))}
           </div>

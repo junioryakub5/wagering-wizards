@@ -95,42 +95,48 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        background: "#0d0d0e",
-        backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")",
-      }}
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ background: "#09090b" }}
     >
-      <div className="w-full max-w-sm">
+      {/* Ambient glow blobs */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div style={{ position: "absolute", top: "-10%", right: "-5%", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(203,163,61,0.12) 0%, transparent 70%)", filter: "blur(60px)" }} />
+        <div style={{ position: "absolute", bottom: "10%", left: "-10%", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(232,192,90,0.07) 0%, transparent 70%)", filter: "blur(50px)" }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(203,163,61,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(203,163,61,0.025) 1px, transparent 1px)", backgroundSize: "80px 80px", maskImage: "radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%)" }} />
+      </div>
+
+      <div className="w-full max-w-sm relative z-10">
         {/* Brand */}
         <div className="text-center mb-10">
-          <span className="block mb-4" style={{ filter: "drop-shadow(0 0 12px rgba(203,163,61,0.7))" }}>
+          <div className="flex justify-center mb-5">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+              className="w-16 h-16 rounded-full flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg, rgba(203,163,61,0.2), rgba(232,192,90,0.1))",
-                border: "1px solid rgba(203,163,61,0.35)",
+                background: "rgba(203,163,61,0.1)",
+                border: "1px solid rgba(203,163,61,0.3)",
+                boxShadow: "0 0 24px rgba(203,163,61,0.2)",
               }}
             >
-              <Wand2 size={30} style={{ color: "#cba33d" }} strokeWidth={1.5} />
+              <Wand2 size={28} style={{ color: "#cba33d" }} strokeWidth={1.5} />
             </div>
-          </span>
+          </div>
           <h1
-            className="text-white mb-1"
+            className="mb-1"
             style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
+              fontFamily: "'Sora', sans-serif",
               fontWeight: 900,
               fontSize: "2rem",
               textTransform: "uppercase",
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.03em",
+              color: "#f4f4f5",
             }}
           >
             Admin{" "}
-            <span style={{ background: "linear-gradient(90deg, #cba33d, #e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+            <span style={{ background: "linear-gradient(135deg, #cba33d, #e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
               Access
             </span>
           </h1>
-          <p className="text-gray-500 text-sm">Enter your admin token to continue</p>
+          <p style={{ color: "#52525b" }} className="text-sm">Enter your admin token to continue</p>
         </div>
 
         {/* Card */}
@@ -138,15 +144,16 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
           onSubmit={handleSubmit}
           className="space-y-4 p-6 rounded-2xl"
           style={{
-            background: "rgba(20,20,22,0.95)",
-            border: "1px solid rgba(203,163,61,0.15)",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+            background: "rgba(17,17,23,0.92)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(203,163,61,0.06)",
+            backdropFilter: "blur(20px)",
           }}
         >
           <div>
             <label
               className="block text-xs font-bold uppercase tracking-widest mb-2"
-              style={{ color: "rgba(203,163,61,0.7)", fontFamily: "'Barlow Condensed', sans-serif" }}
+              style={{ color: "rgba(203,163,61,0.7)", fontFamily: "'Sora', sans-serif", letterSpacing: "0.08em" }}
             >
               Admin Token
             </label>
@@ -157,22 +164,23 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
                 onChange={e => setToken(e.target.value)}
                 placeholder="Enter admin token..."
                 autoFocus
-                className="w-full rounded-lg px-4 py-3 text-white text-sm focus:outline-none transition-all duration-200 pr-10"
+                className="w-full rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition-all duration-200 pr-10"
                 style={{
-                  background: "#0d0d0e",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(9,9,11,0.8)",
+                  border: "1px solid rgba(255,255,255,0.07)",
                   caretColor: "#cba33d",
+                  color: "#f4f4f5",
                 }}
-                onFocus={e => (e.target.style.borderColor = "rgba(203,163,61,0.5)")}
-                onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
+                onFocus={e => { e.target.style.borderColor = "rgba(203,163,61,0.5)"; e.target.style.boxShadow = "0 0 0 2px rgba(203,163,61,0.08)"; }}
+                onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.07)"; e.target.style.boxShadow = "none"; }}
               />
               <button
                 type="button"
                 onClick={() => setShow(!show)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                style={{ color: "rgba(255,255,255,0.3)" }}
+                style={{ color: "#52525b" }}
                 onMouseEnter={e => ((e.target as HTMLElement).style.color = "#cba33d")}
-                onMouseLeave={e => ((e.target as HTMLElement).style.color = "rgba(255,255,255,0.3)")}
+                onMouseLeave={e => ((e.target as HTMLElement).style.color = "#52525b")}
               >
                 {show ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -188,15 +196,16 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg transition-all duration-200 active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-200 active:scale-[0.98]"
             style={{
-              background: loading ? "rgba(203,163,61,0.5)" : "#cba33d",
-              color: "#0d0d0e",
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontWeight: 800,
+              background: loading ? "rgba(203,163,61,0.5)" : "linear-gradient(135deg, #cba33d, #e8c05a)",
+              color: "#09090b",
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 700,
               fontSize: "0.9rem",
-              letterSpacing: "0.05em",
+              letterSpacing: "0.04em",
               textTransform: "uppercase",
+              boxShadow: loading ? "none" : "0 4px 20px rgba(203,163,61,0.35)",
             }}
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
@@ -204,7 +213,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
           </button>
         </form>
 
-        <p className="text-center text-gray-600 text-xs mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: "#3f3f46" }}>
           Wagering Wizards · Admin Portal
         </p>
       </div>
@@ -225,8 +234,10 @@ function OverviewSection({ token }: { token: string }) {
   }, [token]);
 
   if (loading) return (
-    <div className="flex items-center justify-center py-24">
-      <Loader2 size={32} className="animate-spin text-orange-500" />
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.18)" }}>
+        <Loader2 size={28} style={{ color: "#cba33d" }} className="animate-spin" />
+      </div>
     </div>
   );
   if (!stats) return <div className="text-slate-400 py-24 text-center">Failed to load stats.</div>;
@@ -705,8 +716,10 @@ function ManageSlipsSection({ token }: { token: string }) {
       {/* Table */}
       <div className="admin-card overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <Loader2 size={28} className="animate-spin text-orange-500" />
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.18)" }}>
+              <Loader2 size={28} style={{ color: "#cba33d" }} className="animate-spin" />
+            </div>
           </div>
         ) : paginated.length === 0 ? (
           <div className="py-16 text-center">
@@ -871,8 +884,10 @@ function PaymentsSection({ token }: { token: string }) {
 
       <div className="admin-card overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <Loader2 size={28} className="animate-spin text-orange-500" />
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.18)" }}>
+              <Loader2 size={28} style={{ color: "#cba33d" }} className="animate-spin" />
+            </div>
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-slate-500 text-sm">No payments found.</div>
@@ -973,16 +988,19 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   const SidebarContent = () => (
     <>
       {/* Brand */}
-      <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div>
-          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: "-0.01em", color: "white" }}>
-            Wagering <span style={{ background: "linear-gradient(90deg,#cba33d,#e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Wizards</span>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "1.05rem", textTransform: "uppercase", letterSpacing: "-0.02em", color: "#f4f4f5" }}>
+            Wagering{" "}<span style={{ background: "linear-gradient(135deg,#cba33d,#e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Wizards</span>
           </div>
-          <div className="text-xs mt-0.5" style={{ color: "rgba(203,163,61,0.5)", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>Admin Panel</div>
+          <div className="text-xs mt-0.5" style={{ color: "rgba(203,163,61,0.5)", fontFamily: "'Sora', sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>Admin Panel</div>
         </div>
         {/* Close button — only visible in drawer */}
         <button
-          className="md:hidden p-1.5 text-slate-400 hover:text-white transition-colors"
+          className="md:hidden p-1.5 transition-colors"
+          style={{ color: "#52525b" }}
+          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "#f4f4f5")}
+          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "#52525b")}
           onClick={() => setDrawerOpen(false)}
         >
           <X size={20} />
@@ -995,21 +1013,22 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
           <button
             key={item.id}
             onClick={() => goTo(item.id)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-150"
             style={section === item.id ? {
-              background: "rgba(203,163,61,0.12)",
+              background: "rgba(203,163,61,0.1)",
               color: "#cba33d",
               border: "1px solid rgba(203,163,61,0.2)",
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontWeight: 700,
-              letterSpacing: "0.03em",
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 600,
+              letterSpacing: "0.01em",
             } : {
-              color: "rgba(255,255,255,0.45)",
+              color: "#52525b",
               border: "1px solid transparent",
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontWeight: 700,
-              letterSpacing: "0.03em",
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 500,
             }}
+            onMouseEnter={e => { if (section !== item.id) { (e.currentTarget as HTMLElement).style.color = "#a1a1aa"; } }}
+            onMouseLeave={e => { if (section !== item.id) { (e.currentTarget as HTMLElement).style.color = "#52525b"; } }}
           >
             <item.icon size={17} />
             {item.label}
@@ -1018,13 +1037,13 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
       </nav>
 
       {/* Logout */}
-      <div className="px-2 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="px-2 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all"
-          style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: "0.03em", border: "1px solid transparent" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#f87171"; (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.05)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.35)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          style={{ color: "#52525b", fontFamily: "'Sora', sans-serif", fontWeight: 500, border: "1px solid transparent" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#f87171"; (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.06)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,0.15)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#52525b"; (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.borderColor = "transparent"; }}
         >
           <LogOut size={17} />
           Logout
@@ -1034,7 +1053,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   );
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row" style={{ background: "#0d0d0e" }}>
+    <div className="min-h-screen flex flex-col md:flex-row" style={{ background: "#09090b" }}>
 
       {/* ── Mobile drawer overlay ── */}
       {drawerOpen && (
@@ -1047,15 +1066,15 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
       {/* ── Mobile drawer ── */}
       <div
         className={`fixed top-0 left-0 h-full z-50 flex flex-col w-72 transition-transform duration-300 md:hidden ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{ background: "#111113", borderRight: "1px solid rgba(255,255,255,0.05)" }}
+        style={{ background: "#0d0d11", borderRight: "1px solid rgba(255,255,255,0.06)" }}
       >
         <SidebarContent />
       </div>
 
       {/* ── Desktop sidebar ── */}
       <aside
-        className="hidden md:flex w-56 flex-shrink-0 flex-col"
-        style={{ background: "#111113", borderRight: "1px solid rgba(255,255,255,0.05)" }}
+        className="hidden md:flex w-60 flex-shrink-0 flex-col"
+        style={{ background: "#0d0d11", borderRight: "1px solid rgba(255,255,255,0.06)" }}
       >
         <SidebarContent />
       </aside>
@@ -1066,22 +1085,22 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
         {/* Mobile top header */}
         <header
           className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: "rgba(17,17,19,0.95)", borderBottom: "1px solid rgba(255,255,255,0.05)", backdropFilter: "blur(12px)" }}
+          style={{ background: "rgba(9,9,11,0.92)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "saturate(180%) blur(20px)" }}
         >
           <button
             onClick={() => setDrawerOpen(true)}
-            className="p-2 rounded-xl text-slate-400 hover:text-white transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            className="p-2 rounded-xl transition-colors"
+            style={{ color: "#a1a1aa", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <Menu size={20} />
           </button>
-          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "1rem", textTransform: "uppercase", letterSpacing: "-0.01em", color: "white" }}>
-            Wagering <span style={{ background: "linear-gradient(90deg,#cba33d,#e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Wizards</span>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "1rem", textTransform: "uppercase", letterSpacing: "-0.02em", color: "#f4f4f5" }}>
+            Wagering <span style={{ background: "linear-gradient(135deg,#cba33d,#e8c05a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Wizards</span>
           </div>
           <button
             onClick={onLogout}
-            className="p-2 rounded-xl text-slate-400 hover:text-red-400 transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            className="p-2 rounded-xl transition-colors"
+            style={{ color: "#a1a1aa", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
             title="Logout"
           >
             <LogOut size={18} />
@@ -1092,8 +1111,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
         <main className="flex-1 overflow-y-auto pb-24 md:pb-0">
           <div className="px-4 md:px-8 py-5 md:py-7 max-w-6xl">
             <h1
-              className="text-white mb-5 md:mb-6"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,4vw,1.8rem)", textTransform: "uppercase", letterSpacing: "-0.01em" }}
+              style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: "clamp(1.3rem,4vw,1.8rem)", textTransform: "uppercase", letterSpacing: "-0.02em", color: "#f4f4f5", marginBottom: "1.5rem" }}
             >
               {sectionTitle[section]}
             </h1>
@@ -1106,21 +1124,21 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
         {/* ── Mobile bottom tab bar ── */}
         <nav
           className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex"
-          style={{ background: "rgba(17,17,19,0.97)", borderTop: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(16px)" }}
+          style={{ background: "rgba(9,9,11,0.97)", borderTop: "1px solid rgba(255,255,255,0.06)", backdropFilter: "saturate(180%) blur(20px)" }}
         >
           {navItems.map(item => (
             <button
               key={item.id}
               onClick={() => goTo(item.id)}
-              className="flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors"
-              style={{ color: section === item.id ? "#cba33d" : "rgba(255,255,255,0.35)" }}
+              className="flex-1 flex flex-col items-center justify-center py-3 gap-1 relative transition-colors"
+              style={{ color: section === item.id ? "#cba33d" : "#52525b" }}
             >
               <item.icon size={20} />
-              <span style={{ fontSize: "10px", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              <span style={{ fontSize: "10px", fontFamily: "'Sora', sans-serif", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
                 {item.label === "Manage Slips" ? "Slips" : item.label}
               </span>
               {section === item.id && (
-                <div className="absolute bottom-0 h-0.5 w-8 rounded-full" style={{ background: "#cba33d" }} />
+                <div className="absolute bottom-0 h-0.5 w-8 rounded-full" style={{ background: "linear-gradient(90deg, #cba33d, #e8c05a)" }} />
               )}
             </button>
           ))}

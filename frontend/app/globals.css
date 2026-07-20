@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Anton&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Anton&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,19 +6,25 @@
 
 @layer base {
   :root {
-    /* ── Alukyi-inspired palette ── */
-    --bg-primary:   #0d0d0e;   /* true near-black with warm undertone */
-    --bg-secondary: #141416;
-    --bg-card:      #1a1a1c;
-    --accent:       #cba33d;   /* warmer, more saturated Alukyi gold */
+    /* ── Core palette (Wagering Wizards) ── */
+    --bg-primary:   #09090b;   /* 365 Analyst near-black */
+    --bg-secondary: #111117;
+    --bg-card:      #111117;
+    --accent:       #cba33d;   /* Wagering Wizards gold */
     --accent-light: #e8c05a;
     --accent-dim:   rgba(203,163,61,0.15);
     --green:        #22c55e;
     --green-light:  #4ade80;
     --red:          #ef4444;
+    /* 365 Analyst grays */
+    --text-primary:   #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted:     #52525b;
+    --text-faint:     #3f3f46;
     --border:       rgba(255,255,255,0.06);
-    --border-gold:  rgba(203,163,61,0.18);
-    --divider:      rgba(203,163,61,0.22); /* thin gold section divider */
+    --border-hover: rgba(255,255,255,0.1);
+    --border-gold:  rgba(203,163,61,0.2);
+    --divider:      rgba(203,163,61,0.22);
   }
 
   html {
@@ -29,11 +35,8 @@
 
   body {
     font-family: 'Inter', sans-serif;
-    color: #fff;
+    color: var(--text-primary);
     background-color: var(--bg-primary);
-    /* Alukyi-style grain noise texture */
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    background-attachment: fixed;
     overflow-x: hidden;
   }
 }
@@ -45,7 +48,18 @@
     @apply relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 
-  /* ── Section divider (Alukyi thin gold line) ──────── */
+  /* ── 365-style glow divider line ─────────────────── */
+  .glow-line {
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(203,163,61,0.35) 20%,
+      rgba(203,163,61,0.55) 50%,
+      rgba(203,163,61,0.35) 80%,
+      transparent);
+  }
+
+  /* ── Section divider (thin gold line) ────────────── */
   .section-divider {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--divider) 30%, var(--divider) 70%, transparent);
@@ -53,84 +67,130 @@
     border: none;
   }
 
+  /* ── Navbar ── 365 Analyst style ─────────────────── */
+  .nav-link {
+    @apply text-sm font-medium transition-colors duration-150;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+  .nav-link:hover { color: var(--text-primary); }
+  .nav-link.active { color: var(--accent); }
+
   /* ── Buttons ──────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 font-bold text-sm
-           px-6 py-2.5 rounded-lg transition-all duration-200
+           px-6 py-2.5 rounded-full transition-all duration-200
            hover:-translate-y-px active:scale-[0.98];
     background: var(--accent);
-    color: #0d0d0e;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800;
+    color: #09090b;
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
     letter-spacing: 0.03em;
-    text-transform: uppercase;
   }
   .btn-primary:hover {
     background: var(--accent-light);
-    box-shadow: 0 4px 20px rgba(203,163,61,0.35);
+    box-shadow: 0 4px 20px rgba(203,163,61,0.4);
   }
 
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 font-semibold text-sm
-           px-6 py-2.5 rounded-lg border transition-all duration-200
-           hover:-translate-y-px text-gray-300;
+           px-6 py-2.5 rounded-full border transition-all duration-200
+           hover:-translate-y-px;
     border-color: rgba(255,255,255,0.10);
     background: rgba(255,255,255,0.03);
+    color: var(--text-secondary);
   }
   .btn-outline:hover {
     border-color: var(--accent);
     color: var(--accent);
   }
 
-  /* ── Cards ────────────────────────────────────────── */
+  /* ── Gold solid button ─────────────────────────────── */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-full transition-all duration-200 active:scale-[0.98];
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #09090b;
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    box-shadow: 0 4px 20px rgba(203,163,61,0.3);
+  }
+  .btn-gold:hover {
+    box-shadow: 0 6px 28px rgba(203,163,61,0.45);
+    transform: translateY(-1px);
+  }
+
+  /* ── Gold outline button ─────────────────────────── */
+  .btn-outline-gold {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-2.5 rounded-full border transition-all duration-200;
+    border-color: var(--border-gold);
+    color: var(--accent);
+    background: rgba(203,163,61,0.04);
+    font-family: 'Sora', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+  }
+  .btn-outline-gold:hover {
+    border-color: rgba(203,163,61,0.45);
+    background: rgba(203,163,61,0.08);
+  }
+
+  /* ── Cards — 365 Analyst style ─────────────────────── */
   .card {
-    @apply rounded-2xl border overflow-hidden transition-all duration-200;
+    @apply rounded-2xl border overflow-hidden transition-all duration-300;
     background: var(--bg-card);
     border-color: var(--border);
   }
   .card:hover {
     border-color: var(--border-gold);
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
   }
 
-  /* ── Navbar ───────────────────────────────────────── */
-  .nav-link {
-    @apply text-sm font-medium text-gray-400 transition-colors duration-150;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-size: 0.8rem;
+  /* ── Glass card ─────────────────────────────────────── */
+  .card-glass {
+    @apply rounded-2xl overflow-hidden transition-all duration-300;
+    background: rgba(17, 17, 23, 0.85);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
-  .nav-link:hover { color: white; }
-  .nav-link.active { color: var(--accent); }
+  .card-glass:hover {
+    border-color: var(--border-gold);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(203,163,61,0.08);
+    transform: translateY(-2px);
+  }
 
-  /* ── Filter Tabs ──────────────────────────────────── */
+  /* ── Filter Tabs — 365 rounded pills ─────────────────── */
   .filter-tab {
-    @apply text-sm font-semibold px-4 py-1.5 rounded-md border transition-all duration-150;
-    background: transparent;
-    border-color: rgba(255,255,255,0.07);
-    color: #6b7280;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
+    @apply text-xs font-bold px-5 py-2.5 rounded-full border transition-all duration-200 flex-shrink-0;
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.06);
+    color: var(--text-muted);
+    font-family: 'Sora', sans-serif;
     letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-size: 0.75rem;
   }
   .filter-tab:hover {
-    border-color: rgba(255,255,255,0.15);
-    color: #d1d5db;
+    border-color: rgba(255,255,255,0.12);
+    color: var(--text-secondary);
   }
   .filter-tab.active {
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     border-color: transparent;
-    color: #0d0d0e;
+    color: #09090b;
+    box-shadow: 0 4px 20px rgba(203,163,61,0.4);
+    letter-spacing: 0.04em;
   }
 
   /* ── Input / Select ───────────────────────────────── */
   .input-field {
-    @apply w-full border rounded-lg px-4 py-3 text-white placeholder-gray-600
+    @apply w-full border rounded-xl px-4 py-3 text-white placeholder-gray-600
            text-sm focus:outline-none transition-all duration-200;
     background: var(--bg-secondary);
     border-color: var(--border);
@@ -138,27 +198,27 @@
   .input-field:focus { border-color: var(--accent); }
 
   .select-field {
-    @apply w-full border rounded-lg px-4 py-3 text-white
+    @apply w-full border rounded-xl px-4 py-3 text-white
            text-sm focus:outline-none transition-all duration-200;
     background: var(--bg-secondary);
     border-color: var(--border);
   }
   .select-field:focus { border-color: var(--accent); }
 
-  .label { @apply block text-sm font-medium text-gray-400 mb-1.5; }
+  .label { @apply block text-sm font-medium mb-1.5; color: var(--text-secondary); }
 
   /* ── Badges ───────────────────────────────────────── */
   .badge-win {
     @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
-    background: rgba(34,197,94,0.15);
+    background: rgba(34,197,94,0.12);
     color: #4ade80;
-    border: 1px solid rgba(34,197,94,0.25);
+    border: 1px solid rgba(34,197,94,0.2);
   }
   .badge-loss {
     @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
     background: rgba(239,68,68,0.12);
     color: #f87171;
-    border: 1px solid rgba(239,68,68,0.25);
+    border: 1px solid rgba(239,68,68,0.2);
   }
   .badge-active {
     @apply text-xs font-bold px-2.5 py-0.5 rounded-full;
@@ -167,14 +227,15 @@
     border: 1px solid var(--border-gold);
   }
 
-  /* ── Section title — Alukyi heavy condensed style ── */
+  /* ── Section title — Sora heavy ─────────────────────── */
   .section-title {
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: 'Sora', sans-serif;
     font-weight: 900;
     font-size: clamp(2.2rem, 5vw, 3.5rem);
     line-height: 1.05;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.03em;
     text-transform: uppercase;
+    color: var(--text-primary);
   }
 
   /* ── Blur overlay for locked images ──────────────── */
@@ -184,40 +245,63 @@
     transition: filter 0.3s;
   }
 
-  /* ──  Admin styles (kept intact) ─────────────────── */
-  .bg-admin-bg   { background-color: #0f172a; }
-  .admin-card    { @apply bg-[#1a2035] border border-slate-700/60 rounded-xl; }
-  .admin-input   {
-    @apply w-full bg-[#0f172a] border border-slate-700/60 rounded-lg px-3.5 py-2.5
-           text-white placeholder-slate-500 text-sm focus:outline-none
-           focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/20 transition-all;
+  /* ── Odds badge ─────────────────────────────────── */
+  .odds-badge {
+    @apply absolute top-3 right-3 z-20 text-[10px] font-black px-2.5 py-1 rounded-full text-white tracking-wide;
   }
-  .admin-select  {
-    @apply w-full bg-[#0f172a] border border-slate-700/60 rounded-lg px-3.5 py-2.5
-           text-white text-sm focus:outline-none focus:border-orange-500/60 transition-all;
-  }
-  .admin-label   { @apply block text-sm font-medium text-slate-400 mb-1.5; }
-  .admin-btn-primary {
-    @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm
-           px-5 py-2.5 rounded-lg transition-all active:scale-[0.98];
-  }
-  .admin-btn-ghost {
-    @apply bg-transparent border border-slate-600/60 text-slate-300 hover:border-slate-500
-           hover:text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-all;
+  .odds-pill {
+    @apply absolute top-3 right-3 z-20 text-xs font-black px-2.5 py-1 rounded-lg tracking-wide;
+    background: var(--accent);
+    color: #09090b;
   }
 
-  /* ── Glass card — darker, more Alukyi-premium ─────── */
-  .card-glass {
-    @apply rounded-2xl overflow-hidden transition-all duration-300;
-    background: rgba(20, 20, 22, 0.85);
+  /* ── Admin styles ─────────────────────────────────── */
+  .bg-admin-bg   { background-color: var(--bg-primary); }
+  .admin-card {
+    background: rgba(17,17,23,0.9);
     border: 1px solid rgba(255,255,255,0.06);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    @apply rounded-2xl;
   }
-  .card-glass:hover {
-    border-color: var(--border-gold);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(203,163,61,0.08);
-    transform: translateY(-2px);
+  .admin-input {
+    @apply w-full rounded-xl px-3.5 py-2.5 text-white placeholder-[#52525b]
+           text-sm focus:outline-none transition-all;
+    background: rgba(9,9,11,0.8);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .admin-input:focus {
+    border-color: rgba(203,163,61,0.5);
+    box-shadow: 0 0 0 2px rgba(203,163,61,0.08);
+  }
+  .admin-select {
+    @apply w-full rounded-xl px-3.5 py-2.5 text-white text-sm
+           focus:outline-none transition-all;
+    background: rgba(9,9,11,0.8);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .admin-select:focus {
+    border-color: rgba(203,163,61,0.5);
+  }
+  .admin-label { @apply block text-xs font-semibold mb-1.5; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .admin-btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #09090b;
+    @apply font-bold text-sm px-5 py-2.5 rounded-xl transition-all active:scale-[0.98];
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+  }
+  .admin-btn-primary:hover {
+    box-shadow: 0 4px 20px rgba(203,163,61,0.4);
+    transform: translateY(-1px);
+  }
+  .admin-btn-ghost {
+    @apply border text-sm px-4 py-2.5 rounded-xl transition-all font-medium;
+    background: transparent;
+    border-color: rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+  }
+  .admin-btn-ghost:hover {
+    border-color: rgba(255,255,255,0.18);
+    color: var(--text-primary);
   }
 
   /* ── Gold gradient text ───────────────────────────── */
@@ -228,58 +312,41 @@
     background-clip: text;
   }
 
-  /* ── Gold solid button (Alukyi style) ─────────────── */
-  .btn-gold {
-    @apply inline-flex items-center justify-center gap-2
-           px-6 py-2.5 rounded-lg transition-all duration-200 active:scale-[0.98];
-    background: var(--accent);
-    color: #0d0d0e;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800;
-    font-size: 0.85rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .btn-gold:hover {
-    background: var(--accent-light);
-    box-shadow: 0 6px 24px rgba(203,163,61,0.4);
-    transform: translateY(-1px);
-  }
-
-  /* ── Gold outline button ─────────────────────────── */
-  .btn-outline-gold {
-    @apply inline-flex items-center justify-center gap-2
-           px-6 py-2.5 rounded-lg border transition-all duration-200;
-    border-color: var(--border-gold);
-    color: var(--accent);
-    background: rgba(203,163,61,0.04);
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 0.82rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .btn-outline-gold:hover {
-    border-color: rgba(203,163,61,0.45);
+  /* ── 365 Analyst hero badge (pulsing dot) ─────────── */
+  .hero-badge {
+    @apply inline-flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase;
     background: rgba(203,163,61,0.08);
+    border: 1px solid rgba(203,163,61,0.3);
+    color: var(--accent);
+    backdrop-filter: blur(8px);
   }
 
-  /* ── Odds badge ─────────────────────────────────── */
-  .odds-badge {
-    @apply absolute top-3 right-3 z-20 text-[10px] font-black px-2.5 py-1 rounded-full text-white tracking-wide;
+  /* ── Stat mini card (365 style) ──────────────────── */
+  .stat-card {
+    @apply flex flex-col items-center gap-0.5 flex-1 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
   }
-  .odds-pill {
-    @apply absolute top-3 right-3 z-20 text-xs font-black px-2.5 py-1 rounded-md tracking-wide;
-    background: var(--accent);
-    color: #0d0d0e;
+
+  /* ── Trust feature card ──────────────────────────── */
+  .feature-card {
+    @apply flex flex-col items-center text-center p-5 md:p-7 rounded-2xl transition-all duration-300 hover:-translate-y-1 md:hover:-translate-y-2;
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* ── Feature icon box ────────────────────────────── */
+  .feature-icon {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300;
   }
 }
 
 @layer utilities {
   /* ── Font families ─────────────────────────────── */
-  .font-display  { font-family: 'Barlow Condensed', sans-serif; }
-  .font-brand    { font-family: 'Barlow Condensed', sans-serif; }
+  .font-display  { font-family: 'Sora', sans-serif; }
+  .font-brand    { font-family: 'Sora', sans-serif; }
   .font-headline { font-family: 'Anton', sans-serif; }
+  .font-condensed { font-family: 'Barlow Condensed', sans-serif; }
 
   .text-accent  { color: var(--accent); }
   .text-balance { text-wrap: balance; }
@@ -288,33 +355,16 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(203,163,61,0.15) transparent;
   }
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 
-  /* fadeInUp — used by cards */
+  /* ── Animations ────────────────────────────────── */
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(24px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   .animate-fadeInUp {
     animation: fadeInUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
-  }
-
-  /* sparkle — logo / wizard emoji */
-  @keyframes sparkle {
-    0%, 100% { filter: drop-shadow(0 0 6px rgba(203,163,61,0.55)); }
-    50%       { filter: drop-shadow(0 0 16px rgba(203,163,61,0.9)); }
-  }
-  .animate-sparkle {
-    animation: sparkle 2.5s ease-in-out infinite;
-  }
-
-  /* shimmer — text gradient */
-  @keyframes shimmer {
-    0%, 100% { background-position: 0% 50%; }
-    50%       { background-position: 100% 50%; }
-  }
-  .animate-shimmer {
-    animation: shimmer 3s ease-in-out infinite;
-    background-size: 300% 100%;
   }
 
   @keyframes fadeUp {
@@ -325,11 +375,82 @@
     animation: fadeUp 0.45s ease forwards;
   }
 
+  @keyframes sparkle {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(203,163,61,0.55)); }
+    50%       { filter: drop-shadow(0 0 16px rgba(203,163,61,0.9)); }
+  }
+  .animate-sparkle {
+    animation: sparkle 2.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50%       { background-position: 100% 50%; }
+  }
+  .animate-shimmer {
+    animation: shimmer 3s ease-in-out infinite;
+    background-size: 300% 100%;
+  }
+
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.6; }
   }
   .animate-pulse-soft {
     animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(203,163,61,0.4); }
+    50%       { box-shadow: 0 0 0 4px rgba(203,163,61,0); }
+  }
+  .animate-pulse-dot {
+    animation: pulse-dot 2s infinite;
+  }
+
+  /* ── Hero ambient glow blobs ───────────────────── */
+  .hero-glow-1 {
+    position: absolute;
+    top: -10%;
+    right: -5%;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(203,163,61,0.15) 0%, rgba(203,163,61,0.05) 45%, transparent 70%);
+    filter: blur(60px);
+    pointer-events: none;
+  }
+  .hero-glow-2 {
+    position: absolute;
+    bottom: 10%;
+    left: -10%;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,192,90,0.08) 0%, transparent 70%);
+    filter: blur(50px);
+    pointer-events: none;
+  }
+  .hero-glow-3 {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(203,163,61,0.06) 0%, transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
+  }
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(203,163,61,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(203,163,61,0.03) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+    pointer-events: none;
   }
 }

@@ -8,7 +8,6 @@ import { Menu, X, Wand2 } from "lucide-react";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/history", label: "History" },
-  { href: "/portal", label: "Admin" },
 ];
 
 export default function Navbar() {
@@ -19,35 +18,37 @@ export default function Navbar() {
     <nav
       className="fixed top-0 left-0 right-0 z-50"
       style={{
-        background: "rgba(13,13,14,0.9)",
-        backdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        background: "rgba(9,9,11,0.85)",
+        backdropFilter: "saturate(180%) blur(24px)",
+        WebkitBackdropFilter: "saturate(180%) blur(24px)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}
     >
       <div className="page-container">
         <div className="flex items-center justify-between h-16">
+
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 group-hover:scale-110"
               style={{
-                background: "linear-gradient(135deg, rgba(203,163,61,0.18), rgba(232,192,90,0.08))",
+                background: "rgba(203,163,61,0.1)",
                 border: "1px solid rgba(203,163,61,0.3)",
+                boxShadow: "0 0 12px rgba(203,163,61,0.15)",
               }}
             >
-              <Wand2 size={16} style={{ color: "#cba33d" }} strokeWidth={2} />
+              <Wand2 size={18} style={{ color: "#cba33d" }} strokeWidth={1.5} />
             </div>
             <span
-              className="font-display font-black uppercase leading-none tracking-tight"
-              style={{ fontSize: "1.25rem", letterSpacing: "-0.01em" }}
+              className="font-display font-bold tracking-tight leading-none"
+              style={{ fontSize: "1.15rem", letterSpacing: "-0.02em", color: "#f4f4f5" }}
             >
-              <span className="text-white">Wagering</span>{" "}
-              <span className="gradient-text-gold">Wizards</span>
+              Wagering<span style={{ color: "#cba33d" }}> Wizards</span>
             </span>
           </Link>
 
           {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-7">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -57,37 +58,71 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              style={{
+                background: "linear-gradient(135deg, #cba33d, #e8c05a)",
+                color: "#09090b",
+                boxShadow: "0 4px 14px rgba(203,163,61,0.3)",
+                letterSpacing: "0.04em",
+                fontFamily: "'Sora', sans-serif",
+              }}
+            >
+              Admin
+            </Link>
           </div>
 
           {/* Mobile Toggle */}
           <button
-            className="md:hidden p-2 text-gray-400 hover:text-gold transition-colors"
+            className="md:hidden p-2 rounded-xl transition-all duration-200"
+            style={{
+              color: "#a1a1aa",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden border-t border-gold/8 transition-all duration-300 overflow-hidden ${
-          mobileOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
-        }`}
-        style={{ background: "rgba(12,10,29,0.95)" }}
+        className={`md:hidden transition-all duration-300 overflow-hidden ${mobileOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}
+        style={{
+          background: "#0d0d11",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+        }}
       >
-        <div className="page-container py-4 flex flex-col gap-4">
+        <div className="page-container py-5 flex flex-col gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`nav-link text-base ${pathname === link.href ? "active" : ""}`}
+              className={`nav-link text-base py-2 ${pathname === link.href ? "active" : ""}`}
               onClick={() => setMobileOpen(false)}
             >
               {link.label}
             </Link>
           ))}
+          <div className="pt-3 pb-1">
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-200"
+              style={{
+                background: "linear-gradient(135deg, #cba33d, #e8c05a)",
+                color: "#09090b",
+                boxShadow: "0 4px 14px rgba(203,163,61,0.25)",
+                letterSpacing: "0.04em",
+              }}
+              onClick={() => setMobileOpen(false)}
+            >
+              Admin
+            </Link>
+          </div>
         </div>
       </div>
     </nav>
