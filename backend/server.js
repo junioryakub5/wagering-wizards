@@ -13,9 +13,10 @@ const app  = express();
 const PORT = process.env.PORT || 5001;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-// Trust the first proxy (Nginx / Cloudflare) so express-rate-limit can read
-// the real client IP from X-Forwarded-For without throwing ValidationErrors.
-app.set('trust proxy', 1);
+// Trust two proxy hops (Vercel edge → Nginx → Express) so rate-limit can
+// identify the real user IP from X-Forwarded-For instead of bucketing
+// everyone under Vercel's shared server IPs.
+app.set('trust proxy', 2);
 
 // ─── Security: Helmet headers ─────────────────────────────────────────────────
 app.use(helmet({
@@ -64,8 +65,10 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Never rate-limit public prediction reads — they are the main page data
-    return req.path === '/predictions' || req.path.startsWith('/predictions/');
+    // Never rate-limit public read endpoints — these are the main page data
+    const p = req.path;
+    return p === '/predictions' || p.startsWith('/predictions/') ||
+           p === '/access' || p.startsWith('/access/');
   },
 });
 
