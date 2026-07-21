@@ -593,17 +593,64 @@ app.get('/api/admin/payments', adminAuth, async (req, res) => {
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
     const { total, active, completed, payments } = await db.stats();
-    const totalRevenue = payments.reduce((s,p) => s+(p.amount||0), 0);
+
+    // ── Time boundaries (start-of-day in UTC) ────────────────────────────────
+    const now        = new Date();
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const weekStart  = new Date(todayStart.getTime() - 6 * 86400000); // last 7 days incl. today
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+    // ── Revenue breakdowns ────────────────────────────────────────────────────
+    const totalRevenue = payments.reduce((s, p) => s + (p.amount || 0), 0);
+
+    const todayPayments = payments.filter(p => new Date(p.createdAt) >= todayStart);
+    const weekPayments  = payments.filter(p => new Date(p.createdAt) >= weekStart);
+    const monthPayments = payments.filter(p => new Date(p.createdAt) >= monthStart);
+
+    const todayRevenue = todayPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const weekRevenue  = weekPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const monthRevenue = monthPayments.reduce((s, p) => s + (p.amount || 0), 0);
+
+    // ── Win / Loss counts from completed predictions ──────────────────────────
+    let totalWins = 0, totalLosses = 0;
+    if (supabase) {
+      const [{ count: wins }, { count: losses }] = await Promise.all([
+        supabase.from('predictions').select('*', { count: 'exact', head: true })
+          .eq('status', 'completed').eq('result', 'win'),
+        supabase.from('predictions').select('*', { count: 'exact', head: true })
+          .eq('status', 'completed').eq('result', 'loss'),
+      ]);
+      totalWins   = wins   || 0;
+      totalLosses = losses || 0;
+    } else {
+      // In-memory fallback
+      const { memPredictions } = global._memStore || {};
+      if (memPredictions) {
+        totalWins   = memPredictions.filter(p => p.result === 'win').length;
+        totalLosses = memPredictions.filter(p => p.result === 'loss').length;
+      }
+    }
+
+    // ── Recent activity ───────────────────────────────────────────────────────
     const recentActivity = [...payments]
-      .sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20)
-      .map(p => ({ _id:p._id, email:p.email, predictionTitle:p.predictionTitle||'—',
-        amount:p.amount, currency:p.currency||'GHS', status:p.status, createdAt:p.createdAt }));
-    res.json({ success:true, data:{
-      totalSlips:total, activeSlips:active, completedSlips:completed,
-      totalRevenue, totalSales:payments.length, recentActivity,
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 20)
+      .map(p => ({
+        _id: p._id, email: p.email, predictionTitle: p.predictionTitle || '—',
+        amount: p.amount, currency: p.currency || 'GHS', status: p.status, createdAt: p.createdAt,
+      }));
+
+    res.json({ success: true, data: {
+      totalSlips: total, activeSlips: active, completedSlips: completed,
+      totalRevenue,   totalSales:   payments.length,
+      todayRevenue,   todaySales:   todayPayments.length,
+      weekRevenue,    weekSales:    weekPayments.length,
+      monthRevenue,   monthSales:   monthPayments.length,
+      totalWins,      totalLosses,
+      recentActivity,
     }});
   } catch (err) { safeError(res, 500, 'Failed to load stats', err); }
 });
+
 
 // VULN-2 FIX: Admin login — rate limited, does NOT return the raw token in response
 app.post('/api/admin/login', authLimiter, (req, res) => {
