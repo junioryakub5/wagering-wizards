@@ -55,7 +55,7 @@ const paymentLimiter = rateLimit({
 // General API: generous
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 60,
+  max: 200,
   message: { error: 'Rate limit exceeded. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -674,7 +674,20 @@ app.use((err, _req, res, _next) => {
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Wagering Wizards API on port ${PORT}`);
-  // VULN-10 FIX: Never log sensitive tokens
+});
+
+// Keep-alive: prevents idle connections from being dropped by load balancers/proxies
+server.keepAliveTimeout = 65000;
+server.headersTimeout   = 66000;
+
+// ─── Process-level safety net ────────────────────────────────────────────────
+// Prevent a single unhandled async error from crashing the whole process
+process.on('uncaughtException', (err) => {
+  console.error('⚠️  uncaughtException (kept alive):', err.message, err.stack);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️  unhandledRejection (kept alive):', reason);
 });
