@@ -727,16 +727,30 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
     const weekStart  = new Date(todayStart.getTime() - 6 * 86400000); // last 7 days incl. today
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-    // ── Revenue breakdowns ────────────────────────────────────────────────────
-    const totalRevenue = payments.reduce((s, p) => s + (p.amount || 0), 0);
+    // ── Revenue breakdowns — split by currency ────────────────────────────────
+    const ghsPayments = payments.filter(p => p.currency === 'GHS');
+    const ngnPayments = payments.filter(p => p.currency === 'NGN');
 
-    const todayPayments = payments.filter(p => new Date(p.createdAt) >= todayStart);
-    const weekPayments  = payments.filter(p => new Date(p.createdAt) >= weekStart);
-    const monthPayments = payments.filter(p => new Date(p.createdAt) >= monthStart);
+    const totalRevenue    = ghsPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const totalNgnRevenue = ngnPayments.reduce((s, p) => s + (p.amount || 0), 0);
 
-    const todayRevenue = todayPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const weekRevenue  = weekPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const monthRevenue = monthPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const todayPayments    = payments.filter(p => new Date(p.createdAt) >= todayStart);
+    const weekPayments     = payments.filter(p => new Date(p.createdAt) >= weekStart);
+    const monthPayments    = payments.filter(p => new Date(p.createdAt) >= monthStart);
+
+    const todayGhsPayments = todayPayments.filter(p => p.currency === 'GHS');
+    const todayNgnPayments = todayPayments.filter(p => p.currency === 'NGN');
+    const weekGhsPayments  = weekPayments.filter(p => p.currency === 'GHS');
+    const weekNgnPayments  = weekPayments.filter(p => p.currency === 'NGN');
+    const monthGhsPayments = monthPayments.filter(p => p.currency === 'GHS');
+    const monthNgnPayments = monthPayments.filter(p => p.currency === 'NGN');
+
+    const todayRevenue    = todayGhsPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const todayNgnRevenue = todayNgnPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const weekRevenue     = weekGhsPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const weekNgnRevenue  = weekNgnPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const monthRevenue    = monthGhsPayments.reduce((s, p) => s + (p.amount || 0), 0);
+    const monthNgnRevenue = monthNgnPayments.reduce((s, p) => s + (p.amount || 0), 0);
 
     // ── Win / Loss counts from completed predictions ──────────────────────────
     let totalWins = 0, totalLosses = 0;
@@ -768,15 +782,17 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 
     res.json({ success: true, data: {
       totalSlips: total, activeSlips: active, completedSlips: completed,
-      totalRevenue,   totalSales:   payments.length,
-      todayRevenue,   todaySales:   todayPayments.length,
-      weekRevenue,    weekSales:    weekPayments.length,
-      monthRevenue,   monthSales:   monthPayments.length,
-      totalWins,      totalLosses,
+      totalRevenue,    totalNgnRevenue,    totalSales:   payments.length,
+      todayRevenue,    todayNgnRevenue,    todaySales:   todayPayments.length,
+      weekRevenue,     weekNgnRevenue,     weekSales:    weekPayments.length,
+      monthRevenue,    monthNgnRevenue,    monthSales:   monthPayments.length,
+      ghsSales: ghsPayments.length, ngnSales: ngnPayments.length,
+      totalWins, totalLosses,
       recentActivity,
     }});
   } catch (err) { safeError(res, 500, 'Failed to load stats', err); }
 });
+
 
 
 // VULN-2 FIX: Admin login — rate limited, does NOT return the raw token in response

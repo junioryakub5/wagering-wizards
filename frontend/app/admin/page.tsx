@@ -225,11 +225,13 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
 function OverviewSection({ token }: { token: string }) {
   const [stats, setStats] = useState<{
     totalSlips: number; activeSlips: number; completedSlips: number;
-    totalRevenue: number; totalSales: number; recentActivity: RecentActivity[];
+    totalRevenue: number; totalNgnRevenue: number;
+    totalSales: number; ghsSales: number; ngnSales: number;
+    recentActivity: RecentActivity[];
     totalWins?: number; totalLosses?: number;
-    todayRevenue?: number; todaySales?: number;
-    weekRevenue?: number; weekSales?: number;
-    monthRevenue?: number; monthSales?: number;
+    todayRevenue?: number; todayNgnRevenue?: number; todaySales?: number;
+    weekRevenue?: number; weekNgnRevenue?: number; weekSales?: number;
+    monthRevenue?: number; monthNgnRevenue?: number; monthSales?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -252,12 +254,18 @@ function OverviewSection({ token }: { token: string }) {
   const winTotal    = totalWins + totalLosses;
   const winPct      = winTotal > 0 ? Math.round((totalWins / winTotal) * 100) : 0;
 
-  const todayRevenue  = stats.todayRevenue  ?? 0;
-  const todaySales    = stats.todaySales    ?? 0;
-  const weekRevenue   = stats.weekRevenue   ?? 0;
-  const weekSales     = stats.weekSales     ?? 0;
-  const monthRevenue  = stats.monthRevenue  ?? 0;
-  const monthSales    = stats.monthSales    ?? 0;
+  const todayRevenue    = stats.todayRevenue    ?? 0;
+  const todayNgnRevenue = stats.todayNgnRevenue ?? 0;
+  const todaySales      = stats.todaySales      ?? 0;
+  const weekRevenue     = stats.weekRevenue     ?? 0;
+  const weekNgnRevenue  = stats.weekNgnRevenue  ?? 0;
+  const weekSales       = stats.weekSales       ?? 0;
+  const monthRevenue    = stats.monthRevenue    ?? 0;
+  const monthNgnRevenue = stats.monthNgnRevenue ?? 0;
+  const monthSales      = stats.monthSales      ?? 0;
+  const totalNgnRevenue = stats.totalNgnRevenue ?? 0;
+  const ngnSales        = stats.ngnSales        ?? 0;
+  const ghsSales        = stats.ghsSales        ?? 0;
 
   const fmtTime = (iso: string) => {
     const d = new Date(iso);
@@ -308,6 +316,12 @@ function OverviewSection({ token }: { token: string }) {
                 <span style={{ fontSize: "0.7rem", color: "#52525b" }}>🇬🇭 Ghana (Paystack)</span>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#22c55e" }}>GHS {todayRevenue.toFixed(2)}</span>
               </div>
+              {todayNgnRevenue > 0 && (
+                <div className="flex justify-between items-center">
+                  <span style={{ fontSize: "0.7rem", color: "#52525b" }}>🇳🇬 Nigeria (Flutterwave)</span>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#00b074" }}>NGN {todayNgnRevenue.toLocaleString()}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -467,8 +481,32 @@ function OverviewSection({ token }: { token: string }) {
             </div>
             <div style={{ height: "1px", background: "rgba(255,255,255,0.04)" }} />
             <div className="flex justify-between">
-              <span style={{ fontSize: "0.68rem", color: "#52525b" }}>Total sales</span>
-              <span style={{ fontWeight: 700, color: "#f4f4f5", fontSize: "0.85rem", fontFamily: "'Sora', sans-serif" }}>{stats.totalSales}</span>
+              <span style={{ fontSize: "0.68rem", color: "#52525b" }}>GHS sales</span>
+              <span style={{ fontWeight: 700, color: "#f4f4f5", fontSize: "0.85rem", fontFamily: "'Sora', sans-serif" }}>{ghsSales}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Nigeria (Flutterwave) */}
+        <div style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(0,176,116,0.2)", borderRadius: 16, padding: "1.25rem", backdropFilter: "blur(10px)", gridColumn: "span 2" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(0,176,116,0.1)", border: "1px solid rgba(0,176,116,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <DollarSign size={14} style={{ color: "#00b074" }} />
+            </div>
+            <h3 style={{ color: "#f4f4f5", fontWeight: 700, fontSize: "0.85rem", fontFamily: "'Sora', sans-serif" }}>🇳🇬 Nigeria (Flutterwave)</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p style={{ fontSize: "0.62rem", color: "#52525b", marginBottom: 4 }}>All-time</p>
+              <p style={{ fontWeight: 800, color: "#00b074", fontSize: "1rem", fontFamily: "'Sora', sans-serif" }}>NGN {totalNgnRevenue.toLocaleString()}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: "0.62rem", color: "#52525b", marginBottom: 4 }}>Today</p>
+              <p style={{ fontWeight: 700, color: "#00b074", fontSize: "0.9rem", fontFamily: "'Sora', sans-serif" }}>NGN {todayNgnRevenue.toLocaleString()}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: "0.62rem", color: "#52525b", marginBottom: 4 }}>NGN sales</p>
+              <p style={{ fontWeight: 700, color: "#f4f4f5", fontSize: "0.85rem", fontFamily: "'Sora', sans-serif" }}>{ngnSales}</p>
             </div>
           </div>
         </div>
@@ -1103,8 +1141,8 @@ function PaymentsSection({ token }: { token: string }) {
                       </div>
                       <span className="text-sm truncate max-w-[160px]" style={{ color: "#f4f4f5" }}>{pmt.email}</span>
                     </div>
-                    <span className="font-black text-sm" style={{ color: pmt.status === "success" ? "#22c55e" : "#f59e0b", fontFamily: "'Sora', sans-serif" }}>
-                      {pmt.currency} {pmt.amount}
+                    <span className="font-black text-sm" style={{ color: pmt.status === "success" ? (pmt.currency === "NGN" ? "#00b074" : "#22c55e") : "#f59e0b", fontFamily: "'Sora', sans-serif" }}>
+                      {pmt.currency === "NGN" ? "🇳🇬" : "🇬🇭"} {pmt.currency} {pmt.amount.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5 ml-9">
@@ -1147,8 +1185,8 @@ function PaymentsSection({ token }: { token: string }) {
                       <td className="px-5 py-4 text-sm max-w-[160px] truncate" style={{ color: "#a1a1aa" }}>{pmt.predictionTitle}</td>
                       <td className="px-5 py-4 text-xs font-mono" style={{ color: "#3f3f46" }}>{pmt.reference}</td>
                       <td className="px-5 py-4">
-                        <span className="font-black text-sm" style={{ color: pmt.status === "success" ? "#22c55e" : "#f59e0b", fontFamily: "'Sora', sans-serif" }}>
-                          {pmt.currency} {pmt.amount}
+                        <span className="font-black text-sm" style={{ color: pmt.status === "success" ? (pmt.currency === "NGN" ? "#00b074" : "#22c55e") : "#f59e0b", fontFamily: "'Sora', sans-serif" }}>
+                          {pmt.currency === "NGN" ? "🇳🇬" : "🇬🇭"} {pmt.currency} {pmt.amount.toLocaleString()}
                         </span>
                       </td>
                       <td className="px-5 py-4"><StatusBadge status={pmt.status} /></td>
