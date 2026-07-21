@@ -5,7 +5,7 @@ import { Filter, BarChart2, ShieldCheck, Zap, Loader2, CalendarX2, Trophy, Trend
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PredictionCard from "@/components/PredictionCard";
-import Image from "next/image";
+
 import { getActivePredictions } from "@/lib/api";
 import { Prediction } from "@/lib/types";
 
@@ -81,44 +81,23 @@ export default function HomePage() {
 
           <div className="page-container text-center relative z-10">
 
-            {/* Logo centrepiece */}
-            <div className="flex flex-col items-center mb-6 animate-fadeInUp">
-              <div
-                className="relative animate-float"
-                style={{
-                  width: "110px",
-                  height: "110px",
-                  borderRadius: "50%",
-                  overflow: "hidden",
-                  boxShadow: "0 0 50px rgba(203,163,61,0.45), 0 0 120px rgba(203,163,61,0.15), 0 0 8px rgba(203,163,61,0.3)",
-                  border: "2px solid rgba(203,163,61,0.45)",
-                }}
-              >
-                <Image
-                  src="/logo.png"
-                  alt="Wagering Wizards"
-                  width={110}
-                  height={110}
-                  className="w-full h-full object-cover"
-                  priority
-                />
-              </div>
-              <div
-                className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase"
-                style={{
-                  background: "rgba(203,163,61,0.08)",
-                  border: "1px solid rgba(203,163,61,0.28)",
-                  color: "#cba33d",
-                }}
-              >
-                <span style={{
-                  width: "5px", height: "5px", borderRadius: "50%",
-                  background: "#cba33d", boxShadow: "0 0 8px #cba33d",
-                  display: "inline-block",
-                }} />
-                Premium Football Predictions
-              </div>
+            {/* Hero badge */}
+            <div
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase mb-6 animate-fadeInUp"
+              style={{
+                background: "rgba(203,163,61,0.08)",
+                border: "1px solid rgba(203,163,61,0.28)",
+                color: "#cba33d",
+              }}
+            >
+              <span style={{
+                width: "5px", height: "5px", borderRadius: "50%",
+                background: "#cba33d", boxShadow: "0 0 8px #cba33d",
+                display: "inline-block",
+              }} />
+              Premium Football Predictions
             </div>
+
 
             {/* Headline */}
             <h1
