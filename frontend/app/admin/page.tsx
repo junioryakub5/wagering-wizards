@@ -1414,7 +1414,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     setToken("");
     sessionStorage.removeItem("ww_admin_token");
-    window.location.href = "/";
+    window.location.href = "/admin";
   };
 
   if (!token) return <LoginScreen onLogin={handleLogin} />;
