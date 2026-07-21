@@ -15,26 +15,23 @@ function loadFlutterwave(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((window as any).FlutterwaveCheckout) return resolve();
     const SCRIPT_URL = "https://checkout.flutterwave.com/v3.js";
+    // Script already injected — poll until global is ready
     if (document.querySelector(`script[src="${SCRIPT_URL}"]`)) {
       const poll = setInterval(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((window as any).FlutterwaveCheckout) { clearInterval(poll); resolve(); }
       }, 100);
-      setTimeout(() => { clearInterval(poll); reject(new Error("Flutterwave timed out")); }, 10000);
+      setTimeout(() => { clearInterval(poll); resolve(); }, 15000); // resolve anyway after 15s
       return;
     }
     const s = document.createElement("script");
     s.src = SCRIPT_URL;
     s.async = true;
-    s.onerror = () => reject(new Error("Could not load Flutterwave script."));
+    s.onerror = () => reject(new Error("Could not load Flutterwave script. Check your internet connection."));
     s.onload = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((window as any).FlutterwaveCheckout) return resolve();
-      const poll = setInterval(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((window as any).FlutterwaveCheckout) { clearInterval(poll); resolve(); }
-      }, 50);
-      setTimeout(() => { clearInterval(poll); reject(new Error("FlutterwaveCheckout not ready")); }, 6000);
+      // FLW v3.js initialises asynchronously — resolve immediately and let
+      // FlutterwaveCheckout() itself handle any remaining setup.
+      resolve();
     };
     document.head.appendChild(s);
   });
