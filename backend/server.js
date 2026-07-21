@@ -55,10 +55,14 @@ const paymentLimiter = rateLimit({
 // General API: generous
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 200,
+  max: 1000,
   message: { error: 'Rate limit exceeded. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Never rate-limit public prediction reads — they are the main page data
+    return req.path === '/predictions' || req.path.startsWith('/predictions/');
+  },
 });
 
 app.use('/api/', generalLimiter);
