@@ -1,12 +1,377 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, Calendar, CheckCircle2, XCircle, BarChart3, Loader2 } from "lucide-react";
+import {
+  TrendingUp, Calendar, CheckCircle2, XCircle, BarChart3,
+  Loader2, Trophy, Zap, ChevronDown, ChevronUp, X,
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getHistoryPredictions } from "@/lib/api";
 import { Prediction } from "@/lib/types";
 
+// ── Accent colours per odds category ──────────────────────────────────────────
+const ACCENT: Record<string, { bg: string; text: string; glow: string; border: string; gradient: string }> = {
+  "2+": {
+    bg: "rgba(203,163,61,0.08)",
+    text: "#cba33d",
+    glow: "rgba(203,163,61,0.22)",
+    border: "rgba(203,163,61,0.22)",
+    gradient: "linear-gradient(90deg, #cba33d, #a07820)",
+  },
+  "5+": {
+    bg: "rgba(232,192,90,0.08)",
+    text: "#e8c05a",
+    glow: "rgba(232,192,90,0.2)",
+    border: "rgba(232,192,90,0.22)",
+    gradient: "linear-gradient(90deg, #e8c05a, #cba33d)",
+  },
+  "10+": {
+    bg: "rgba(232,232,232,0.06)",
+    text: "#e8e8e8",
+    glow: "rgba(232,232,232,0.12)",
+    border: "rgba(232,232,232,0.15)",
+    gradient: "linear-gradient(90deg, #e8e8e8, #b0b0b0)",
+  },
+  "20+": {
+    bg: "rgba(239,68,68,0.08)",
+    text: "#ef4444",
+    glow: "rgba(239,68,68,0.18)",
+    border: "rgba(239,68,68,0.2)",
+    gradient: "linear-gradient(90deg, #ef4444, #dc2626)",
+  },
+};
+
+// ── Image lightbox ─────────────────────────────────────────────────────────────
+function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overflow = "";
+      window.scrollTo(0, scrollY);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4"
+      style={{ background: "rgba(9,9,11,0.96)", backdropFilter: "blur(12px)" }}
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center z-[10000] transition-all duration-200 hover:scale-110"
+        style={{ background: "rgba(203,163,61,0.9)", borderRadius: "50%", boxShadow: "0 0 20px rgba(203,163,61,0.45)" }}
+      >
+        <X size={18} color="#09090b" strokeWidth={2.5} />
+      </button>
+      <div className="min-h-full flex items-center justify-center py-12" onClick={(e) => e.stopPropagation()}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className="shadow-2xl"
+          style={{ maxWidth: "92vw", maxHeight: "88vh", width: "auto", height: "auto", borderRadius: "16px", objectFit: "contain" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Clickable image thumbnail ──────────────────────────────────────────────────
+function ImageThumb({
+  src, alt, label, labelColor, accent,
+}: {
+  src: string; alt: string; label: string; labelColor: string; accent: typeof ACCENT["2+"];
+}) {
+  const [lightbox, setLightbox] = useState(false);
+  return (
+    <>
+      <div className="flex flex-col overflow-hidden">
+        {/* Label row */}
+        <div
+          className="flex items-center justify-between px-3 py-2"
+          style={{ background: accent.bg, borderBottom: `1px solid ${accent.border}` }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: labelColor, fontFamily: "'Sora', sans-serif" }}
+          >
+            {label}
+          </span>
+          <span
+            className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: accent.bg, color: accent.text, border: `1px solid ${accent.border}`, fontFamily: "'Sora', sans-serif", letterSpacing: "0.06em" }}
+          >
+            TAP TO EXPAND
+          </span>
+        </div>
+
+        {/* Image */}
+        <button
+          type="button"
+          onClick={() => setLightbox(true)}
+          className="relative group overflow-hidden cursor-zoom-in w-full"
+          style={{ background: "rgba(9,9,11,0.7)" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={alt}
+            className="w-full object-contain transition-transform duration-500 group-hover:scale-105"
+            style={{ maxHeight: "260px", minHeight: "120px" }}
+          />
+          <div
+            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            style={{ background: "rgba(9,9,11,0.55)", backdropFilter: "blur(2px)" }}
+          >
+            <span
+              className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 flex items-center gap-1.5"
+              style={{ background: accent.gradient, color: "#09090b", borderRadius: "8px", fontFamily: "'Sora', sans-serif" }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+              View Full
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {lightbox && <Lightbox src={src} alt={alt} onClose={() => setLightbox(false)} />}
+    </>
+  );
+}
+
+// ── Single result card ─────────────────────────────────────────────────────────
+function ResultCard({ prediction, index }: { prediction: Prediction; index: number }) {
+  const isWin = prediction.result === "win";
+  const acc = ACCENT[prediction.oddsCategory] || ACCENT["2+"];
+
+  const hasBetSlip = !!(prediction.previewImageUrl || prediction.imageUrl);
+  const hasProof   = !!prediction.proofImageUrl;
+  const hasImages  = hasBetSlip || hasProof;
+
+  const betSlipSrc = prediction.previewImageUrl || prediction.imageUrl || "";
+  const proofSrc   = prediction.proofImageUrl || "";
+
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div
+      className="card-glass overflow-hidden"
+      style={{
+        animationDelay: `${index * 80}ms`,
+        animation: "fadeInUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards",
+        opacity: 0,
+        borderColor: isWin ? acc.border : "rgba(239,68,68,0.15)",
+        boxShadow: isWin
+          ? `0 4px 32px rgba(0,0,0,0.5), 0 0 24px ${acc.glow}`
+          : "0 4px 32px rgba(0,0,0,0.5), 0 0 24px rgba(239,68,68,0.08)",
+      }}
+    >
+      {/* ── Accent top strip */}
+      <div
+        className="h-[2px] w-full"
+        style={{ background: isWin ? acc.gradient : "linear-gradient(90deg, #ef4444, #dc2626)" }}
+      />
+
+      {/* ── Header row */}
+      <div className="flex flex-wrap items-start gap-2 px-4 md:px-5 pt-4 pb-3">
+        {/* Match title */}
+        <div className="flex-1 min-w-0">
+          <h3
+            className="font-bold text-sm md:text-base leading-snug"
+            style={{ color: "#f4f4f5", fontFamily: "'Sora', sans-serif" }}
+          >
+            {prediction.match}
+          </h3>
+          {prediction.league && (
+            <p className="text-[11px] mt-0.5" style={{ color: "#52525b" }}>
+              {prediction.league}
+            </p>
+          )}
+        </div>
+
+        {/* Right badges */}
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+          {/* Odds category */}
+          <span
+            className="text-[10px] font-black px-2.5 py-1 tracking-widest uppercase"
+            style={{
+              background: acc.bg,
+              color: acc.text,
+              border: `1px solid ${acc.border}`,
+              borderRadius: "8px",
+              fontFamily: "'Sora', sans-serif",
+              boxShadow: `0 0 10px ${acc.glow}`,
+            }}
+          >
+            {prediction.oddsCategory} ODDS
+          </span>
+
+          {/* Win / Loss */}
+          {prediction.result && (
+            <span
+              className="text-[10px] font-black px-3 py-1 flex items-center gap-1 uppercase tracking-wider"
+              style={{
+                background: isWin ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.12)",
+                color: isWin ? "#22c55e" : "#ef4444",
+                border: isWin ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(239,68,68,0.25)",
+                borderRadius: "8px",
+                fontFamily: "'Sora', sans-serif",
+              }}
+            >
+              {isWin ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+              {isWin ? "WON" : "LOST"}
+            </span>
+          )}
+
+          {/* Date */}
+          <span className="flex items-center gap-1 text-[11px]" style={{ color: "#3f3f46" }}>
+            <Calendar size={12} />
+            {new Date(prediction.date).toLocaleDateString("en-GB", {
+              weekday: "short", day: "numeric", month: "short",
+            })}
+          </span>
+
+          {/* Odds value */}
+          {prediction.odds && (
+            <span
+              className="text-[11px] font-bold"
+              style={{ color: acc.text, fontFamily: "'Sora', sans-serif" }}
+            >
+              @{prediction.odds}
+            </span>
+          )}
+
+          {/* Expand / Collapse */}
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="p-1 transition-colors rounded-md"
+            style={{ color: "#52525b", background: "rgba(255,255,255,0.04)" }}
+          >
+            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Expandable body */}
+      {expanded && (
+        <>
+          {hasImages ? (
+            <div
+              className={`grid gap-0 ${hasBetSlip && hasProof ? "grid-cols-2" : "grid-cols-1"}`}
+              style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              {hasBetSlip && (
+                <div className={hasBetSlip && hasProof ? "border-r" : ""} style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+                  <ImageThumb
+                    src={betSlipSrc}
+                    alt={`Bet slip — ${prediction.match}`}
+                    label="Bet Slip"
+                    labelColor="#a1a1aa"
+                    accent={acc}
+                  />
+                </div>
+              )}
+              {hasProof && (
+                <ImageThumb
+                  src={proofSrc}
+                  alt={`Result proof — ${prediction.match}`}
+                  label={isWin ? "Result Proof ✓" : "Result Proof"}
+                  labelColor={isWin ? acc.text : "#ef4444"}
+                  accent={isWin ? acc : {
+                    bg: "rgba(239,68,68,0.08)",
+                    text: "#ef4444",
+                    glow: "rgba(239,68,68,0.18)",
+                    border: "rgba(239,68,68,0.2)",
+                    gradient: "linear-gradient(90deg, #ef4444, #dc2626)",
+                  }}
+                />
+              )}
+            </div>
+          ) : (
+            /* No images — result visual */
+            <div
+              className="mx-4 md:mx-5 mb-4 mt-1 flex flex-col items-center justify-center py-8 px-4 text-center"
+              style={{
+                background: isWin ? "rgba(34,197,94,0.05)" : "rgba(239,68,68,0.05)",
+                border: isWin ? "1px solid rgba(34,197,94,0.12)" : "1px solid rgba(239,68,68,0.12)",
+                borderRadius: "12px",
+              }}
+            >
+              {isWin ? (
+                <CheckCircle2 size={44} className="mb-3" style={{ color: "#22c55e" }} />
+              ) : (
+                <XCircle size={44} className="mb-3" style={{ color: "#ef4444" }} />
+              )}
+              <p
+                className="font-black text-xl mb-1"
+                style={{ color: isWin ? "#22c55e" : "#ef4444", fontFamily: "'Sora', sans-serif" }}
+              >
+                {isWin ? "Prediction Won!" : "Better luck next time"}
+              </p>
+              <p className="text-xs" style={{ color: "#52525b" }}>{prediction.match}</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Footer */}
+      <div
+        className="flex items-center justify-between px-4 md:px-5 py-2.5"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(9,9,11,0.4)" }}
+      >
+        <span className="text-[11px]" style={{ color: "#27272a" }}>
+          {prediction.league || "—"}
+        </span>
+        <span
+          className="text-[11px] font-semibold flex items-center gap-1"
+          style={{ color: isWin ? "#22c55e" : "#ef4444", fontFamily: "'Sora', sans-serif" }}
+        >
+          {isWin ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+          {isWin ? "Prediction correct" : "Prediction missed"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Month group label ──────────────────────────────────────────────────────────
+function MonthLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4 mt-2">
+      <span
+        className="text-xs font-bold uppercase tracking-widest px-3 py-1"
+        style={{
+          color: "#cba33d",
+          background: "rgba(203,163,61,0.07)",
+          border: "1px solid rgba(203,163,61,0.18)",
+          borderRadius: "8px",
+          fontFamily: "'Sora', sans-serif",
+        }}
+      >
+        {label}
+      </span>
+      <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.04)" }} />
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
 export default function HistoryPage() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +379,7 @@ export default function HistoryPage() {
   const [filter, setFilter] = useState<"all" | "win" | "loss">("all");
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       try {
         const data = await getHistoryPredictions();
         setPredictions(data);
@@ -24,7 +389,7 @@ export default function HistoryPage() {
         setLoading(false);
       }
     };
-    fetch();
+    load();
   }, []);
 
   const filtered = predictions.filter((p) => {
@@ -32,136 +397,235 @@ export default function HistoryPage() {
     return p.result === filter;
   });
 
-  const wins = predictions.filter((p) => p.result === "win").length;
-  const losses = predictions.filter((p) => p.result === "loss").length;
+  const wins    = predictions.filter((p) => p.result === "win").length;
+  const losses  = predictions.filter((p) => p.result === "loss").length;
   const winRate = predictions.length > 0 ? Math.round((wins / predictions.length) * 100) : 0;
+
+  // Group filtered results by month+year
+  const grouped: { label: string; items: Prediction[] }[] = [];
+  filtered.forEach((pred) => {
+    const d = new Date(pred.date);
+    const label = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const last = grouped[grouped.length - 1];
+    if (last && last.label === label) {
+      last.items.push(pred);
+    } else {
+      grouped.push({ label, items: [pred] });
+    }
+  });
+
+  let cardIdx = 0;
 
   return (
     <>
       <Navbar />
-      <main
-        className="min-h-screen pt-20 pb-16 relative z-10"
-        style={{ background: "#09090b" }}
-      >
-        {/* Ambient glow */}
-        <div className="pointer-events-none absolute top-0 inset-x-0" aria-hidden="true">
-          <div style={{ position: "absolute", top: "-10%", right: "-5%", width: "500px", height: "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(203,163,61,0.1) 0%, transparent 70%)", filter: "blur(60px)" }} />
-        </div>
+      <main className="min-h-screen pt-24 pb-20 relative z-10" style={{ background: "#09090b" }}>
 
-        <div className="page-container">
-          {/* Header */}
-          <div className="pt-10 mb-10 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="hero-badge">
-                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#cba33d", boxShadow: "0 0 8px #cba33d", display: "inline-block" }} />
-                Prediction History
+        {/* Ambient background orbs */}
+        <div
+          className="pointer-events-none fixed top-0 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(203,163,61,0.25) 0%, transparent 70%)", zIndex: 0 }}
+        />
+        <div
+          className="pointer-events-none fixed bottom-0 right-1/4 w-80 h-80 rounded-full blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(160,120,16,0.15) 0%, transparent 70%)", zIndex: 0, opacity: 0.08 }}
+        />
+
+        <div className="page-container relative z-10">
+
+          {/* ── Page header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className="w-8 h-8 flex items-center justify-center"
+                style={{ background: "rgba(203,163,61,0.1)", border: "1px solid rgba(203,163,61,0.22)", borderRadius: "10px" }}
+              >
+                <Trophy size={16} style={{ color: "#cba33d" }} />
               </div>
+              <span
+                className="text-[11px] font-bold uppercase tracking-widest"
+                style={{ color: "#cba33d", fontFamily: "'Sora', sans-serif" }}
+              >
+                Track Record
+              </span>
             </div>
             <h1
-              style={{ fontFamily: "'Sora', sans-serif", fontWeight: 900, fontSize: "clamp(2rem, 6vw, 4rem)", letterSpacing: "-0.03em", textTransform: "uppercase", color: "#f4f4f5", lineHeight: 1.05 }}
-              className="mb-3"
+              className="font-display text-3xl md:text-4xl font-bold mb-2"
+              style={{ color: "#f4f4f5", letterSpacing: "-0.02em" }}
             >
-              Past{" "}
-              <span className="gradient-text-gold">Results</span>
+              Past Results
             </h1>
-            <p style={{ color: "#52525b" }} className="text-sm max-w-sm mx-auto">
-              Our winning history and proven track record
+            <p className="text-sm" style={{ color: "#52525b" }}>
+              Our verified winning history — transparent, unfiltered, proven.
             </p>
           </div>
 
-          {/* Stats Banner */}
+          {/* ── Stats banner */}
           {!loading && predictions.length > 0 && (
             <div
-              className="rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center gap-6"
+              className="p-5 md:p-6 mb-8 flex flex-col md:flex-row items-center gap-5"
               style={{
-                background: "rgba(17,17,23,0.85)",
-                border: "1px solid rgba(255,255,255,0.07)",
-                backdropFilter: "blur(16px)",
+                background: "rgba(203,163,61,0.05)",
+                border: "1px solid rgba(203,163,61,0.14)",
+                borderRadius: "18px",
+                backdropFilter: "blur(20px)",
+                boxShadow: "0 4px 32px rgba(0,0,0,0.5), 0 0 30px rgba(203,163,61,0.06)",
               }}
             >
-              <div className="flex items-center gap-3">
+              {/* Left — badge */}
+              <div className="flex items-center gap-4">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.18)" }}
+                  className="w-12 h-12 flex-shrink-0 flex items-center justify-center"
+                  style={{ background: "rgba(203,163,61,0.12)", border: "1px solid rgba(203,163,61,0.22)", borderRadius: "14px", boxShadow: "0 0 20px rgba(203,163,61,0.2)" }}
                 >
-                  <TrendingUp size={22} style={{ color: "#22c55e" }} />
+                  <TrendingUp size={22} style={{ color: "#cba33d" }} />
                 </div>
                 <div>
-                  <h2 className="font-bold text-lg" style={{ color: "#f4f4f5" }}>Proven Success</h2>
-                  <p className="text-sm" style={{ color: "#52525b" }}>
+                  <h2 className="font-bold text-base" style={{ color: "#f4f4f5", fontFamily: "'Sora', sans-serif" }}>
+                    Proven Success
+                  </h2>
+                  <p className="text-xs" style={{ color: "#52525b" }}>
                     Join thousands who trust Wagering Wizards
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-8 md:ml-auto">
-                <div className="text-center">
-                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#22c55e" }}>{winRate}%</p>
-                  <p className="text-xs" style={{ color: "#3f3f46" }}>Win Rate</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#22c55e" }}>{wins}</p>
-                  <p className="text-xs" style={{ color: "#3f3f46" }}>Wins</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#ef4444" }}>{losses}</p>
-                  <p className="text-xs" style={{ color: "#3f3f46" }}>Losses</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-black" style={{ fontFamily: "'Sora', sans-serif", color: "#cba33d" }}>{predictions.length}</p>
-                  <p className="text-xs" style={{ color: "#3f3f46" }}>Total</p>
-                </div>
+
+              {/* Right — stats */}
+              <div className="flex items-center gap-6 md:gap-8 md:ml-auto flex-wrap justify-center">
+                {[
+                  { label: "Win Rate", value: `${winRate}%`, color: "#cba33d"  },
+                  { label: "Wins",     value: wins,           color: "#22c55e"  },
+                  { label: "Losses",   value: losses,         color: "#ef4444"  },
+                  { label: "Total",    value: predictions.length, color: "#e8c05a" },
+                ].map((s) => (
+                  <div key={s.label} className="text-center">
+                    <p
+                      className="text-2xl font-black"
+                      style={{ color: s.color, fontFamily: "'Sora', sans-serif" }}
+                    >
+                      {s.value}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-wider mt-0.5" style={{ color: "#3f3f46", fontFamily: "'Sora', sans-serif" }}>
+                      {s.label}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-8">
-            {(["all", "win", "loss"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className="text-xs font-bold px-5 py-2.5 rounded-full border transition-all duration-200 capitalize"
-                style={filter === f
-                  ? f === "win"
-                    ? { background: "rgba(34,197,94,0.15)", color: "#22c55e", borderColor: "rgba(34,197,94,0.3)", boxShadow: "0 4px 14px rgba(34,197,94,0.15)" }
-                    : f === "loss"
-                    ? { background: "rgba(239,68,68,0.15)", color: "#ef4444", borderColor: "rgba(239,68,68,0.3)", boxShadow: "0 4px 14px rgba(239,68,68,0.15)" }
-                    : { background: "linear-gradient(135deg, #cba33d, #e8c05a)", color: "#09090b", borderColor: "transparent", boxShadow: "0 4px 20px rgba(203,163,61,0.35)" }
-                  : { background: "rgba(255,255,255,0.03)", color: "#52525b", borderColor: "rgba(255,255,255,0.07)" }
-                }
-              >
-                {f === "all"
-                  ? "All Results"
-                  : f === "win"
-                  ? <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="flex-shrink-0" />Wins</span>
-                  : <span className="flex items-center gap-1.5"><XCircle size={13} className="flex-shrink-0" />Losses</span>}
-              </button>
-            ))}
+          {/* ── Filter tabs */}
+          <div className="flex gap-2.5 mb-8 flex-wrap">
+            {([
+              { key: "all",  label: "All Results", icon: null },
+              { key: "win",  label: "Wins",        icon: <CheckCircle2 size={12} className="flex-shrink-0" /> },
+              { key: "loss", label: "Losses",      icon: <XCircle size={12} className="flex-shrink-0" /> },
+            ] as const).map((tab) => {
+              const active = filter === tab.key;
+              const styles = active
+                ? tab.key === "win"
+                  ? { background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#09090b", borderColor: "transparent", boxShadow: "0 0 20px rgba(34,197,94,0.3)" }
+                  : tab.key === "loss"
+                    ? { background: "linear-gradient(135deg, #ef4444, #dc2626)", color: "#fff", borderColor: "transparent", boxShadow: "0 0 20px rgba(239,68,68,0.3)" }
+                    : { background: "linear-gradient(135deg, #cba33d, #a07820)", color: "#09090b", borderColor: "transparent", boxShadow: "0 0 20px rgba(203,163,61,0.35)" }
+                : { background: "rgba(17,17,23,0.7)", color: "#52525b", borderColor: "rgba(255,255,255,0.07)" };
+
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
+                  className="text-[11px] font-semibold px-5 py-2 border transition-all duration-300 flex items-center gap-1.5"
+                  style={{
+                    fontFamily: "'Sora', sans-serif",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    borderRadius: "10px",
+                    ...styles,
+                  }}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  {!active && (
+                    <span
+                      className="text-[10px] font-bold ml-1 px-1.5 py-0.5 rounded-full"
+                      style={{ background: "rgba(255,255,255,0.07)", color: "#52525b" }}
+                    >
+                      {tab.key === "all" ? predictions.length : tab.key === "win" ? wins : losses}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Results */}
+          {/* ── Content */}
           {loading ? (
-            <div className="flex flex-col items-center py-24 gap-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.15)" }}>
+            <div className="flex flex-col items-center py-28 gap-4">
+              <div
+                className="w-16 h-16 flex items-center justify-center"
+                style={{
+                  background: "rgba(203,163,61,0.08)",
+                  border: "1px solid rgba(203,163,61,0.22)",
+                  borderRadius: "18px",
+                  boxShadow: "0 0 28px rgba(203,163,61,0.15)",
+                }}
+              >
                 <Loader2 size={28} style={{ color: "#cba33d" }} className="animate-spin" />
               </div>
-              <p className="text-gray-400 text-sm">Loading history...</p>
+              <p className="text-sm" style={{ color: "#52525b" }}>Loading history…</p>
             </div>
           ) : error ? (
-            <div className="text-center py-24 text-red-400">{error}</div>
+            <div className="text-center py-28 text-red-400 text-sm">{error}</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-24">
-              <BarChart3 size={48} className="text-gray-700 mx-auto mb-4" />
-              <p className="text-gray-400 text-lg mb-2">No results yet</p>
-              <p className="text-gray-600 text-sm">
+            <div className="text-center py-28">
+              <BarChart3 size={52} className="mx-auto mb-5" style={{ color: "#27272a" }} />
+              <p className="text-lg font-semibold mb-2" style={{ color: "#52525b", fontFamily: "'Sora', sans-serif" }}>
+                No results yet
+              </p>
+              <p className="text-sm" style={{ color: "#3f3f46" }}>
                 Completed predictions will appear here.
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {filtered.map((pred) => (
-                <ResultCard key={pred._id} prediction={pred} />
+            <div className="space-y-10">
+              {grouped.map((group) => (
+                <div key={group.label}>
+                  <MonthLabel label={group.label} />
+                  <div className="space-y-4">
+                    {group.items.map((pred) => {
+                      const idx = cardIdx++;
+                      return <ResultCard key={pred._id} prediction={pred} index={idx} />;
+                    })}
+                  </div>
+                </div>
               ))}
+            </div>
+          )}
+
+          {/* ── Bottom CTA */}
+          {!loading && !error && filtered.length > 0 && (
+            <div className="text-center mt-16">
+              <div className="flex items-center gap-3 justify-center mb-5">
+                <div className="flex-1 max-w-[120px] h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(203,163,61,0.3))" }} />
+                <Zap size={16} style={{ color: "#cba33d" }} />
+                <div className="flex-1 max-w-[120px] h-px" style={{ background: "linear-gradient(90deg, rgba(203,163,61,0.3), transparent)" }} />
+              </div>
+              <a
+                href="/"
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-105"
+                style={{
+                  background: "rgba(203,163,61,0.08)",
+                  border: "1px solid rgba(203,163,61,0.3)",
+                  color: "#cba33d",
+                  fontFamily: "'Sora', sans-serif",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  boxShadow: "0 0 20px rgba(203,163,61,0.1)",
+                }}
+              >
+                <Trophy size={15} />
+                View This Week&apos;s Tips
+              </a>
             </div>
           )}
         </div>
@@ -170,149 +634,3 @@ export default function HistoryPage() {
     </>
   );
 }
-
-function ResultCard({ prediction }: { prediction: Prediction }) {
-  const isWin    = prediction.result === "win";
-  const hasBefore = !!prediction.imageUrl;
-  const hasProof  = !!prediction.proofImageUrl;
-  const hasImages = hasBefore || hasProof;
-
-  return (
-    <div className="card-glass overflow-hidden">
-      {/* ── Header ── */}
-      <div className="flex flex-wrap items-center gap-3 px-4 md:px-6 pt-4 md:pt-5 pb-4">
-        <h3 className="font-bold text-base md:text-lg">{prediction.match}</h3>
-        <span className="text-xs font-bold px-3 py-1 rounded-full text-gold border border-gold/30 bg-gold/10">
-          {prediction.oddsCategory} ODDS
-        </span>
-        {prediction.result && (
-          <span className={isWin ? "badge-win" : "badge-loss"}>
-            {isWin
-              ? <span className="flex items-center gap-1"><CheckCircle2 size={11} />WON</span>
-              : <span className="flex items-center gap-1"><XCircle size={11} />LOST</span>}
-          </span>
-        )}
-        <span className="text-gray-500 text-sm ml-auto flex items-center gap-1">
-          <Calendar size={13} />
-          {new Date(prediction.date).toLocaleDateString("en-GB", {
-            weekday: "short", day: "numeric", month: "short",
-          })}
-        </span>
-      </div>
-
-      {/* ── Image evidence (primary content) ── */}
-      {hasImages ? (
-        <div className={`grid gap-0 ${hasBefore && hasProof ? "grid-cols-2" : "grid-cols-1"}`}
-          style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-
-          {/* Bet Slip — BEFORE */}
-          {hasBefore && (
-            <div className={`flex flex-col ${hasBefore && hasProof ? "border-r border-white/5" : ""}`}>
-              <div className="flex items-center justify-between px-3 py-2"
-                style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Bet Slip</span>
-                <span className="text-[10px] text-gray-600 uppercase tracking-widest">Before</span>
-              </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={prediction.imageUrl!}
-                alt={`Bet slip — ${prediction.match}`}
-                className="w-full object-contain"
-                style={{
-                  background: "rgba(0,0,0,0.5)",
-                  maxHeight: hasBefore && hasProof ? "280px" : "360px",
-                  minHeight: "140px",
-                }}
-              />
-            </div>
-          )}
-
-          {/* Result Proof — AFTER */}
-          {hasProof && (
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between px-3 py-2"
-                style={{
-                  background: isWin ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
-                  borderBottom: `1px solid ${isWin ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)"}`,
-                }}>
-                <span className={`text-[11px] font-bold uppercase tracking-wide ${isWin ? "text-emerald" : "text-red-400"}`}>Result Proof</span>
-                <span className="text-[10px] text-gray-600 uppercase tracking-widest">After</span>
-              </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={prediction.proofImageUrl!}
-                alt={`Result proof — ${prediction.match}`}
-                className="w-full object-contain"
-                style={{
-                  background: "rgba(0,0,0,0.5)",
-                  maxHeight: hasBefore && hasProof ? "280px" : "360px",
-                  minHeight: "140px",
-                }}
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        /* ── Fallback: no images — keep the old text/icon layout ── */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 px-4 md:px-6 pb-5"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1.25rem" }}>
-          <div>
-            <p className="text-xs font-semibold text-gray-400 text-center mb-3">Our Prediction</p>
-            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div className="bg-gradient-to-r from-red-700 to-red-600 px-4 py-3 flex justify-between items-center">
-                <span className="font-black text-sm tracking-wider">SportyBet</span>
-                <div className="text-right text-xs opacity-90">
-                  <div>Betslip</div>
-                  <div>{new Date(prediction.date).toLocaleDateString("en-GB")}</div>
-                </div>
-              </div>
-              <div className="p-4" style={{ background: "#0a0818" }}>
-                <p className="text-center text-xs text-gray-500 mb-1">Booking Code</p>
-                <p className="text-center font-black text-xl text-wizard-purple-light tracking-widest mb-4">
-                  {prediction.content || "—"}
-                </p>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Odds</span>
-                    <span className="font-bold text-gold">{prediction.odds}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">League</span>
-                    <span className="font-medium">{prediction.league}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <p className={`text-xs font-semibold text-center mb-3 ${isWin ? "text-emerald" : "text-red-400"}`}>
-              Actual Result: <span className="font-black">{isWin ? "WON" : "LOST"}</span>
-            </p>
-            <div className="rounded-xl h-full flex flex-col items-center justify-center py-8 px-4 text-center"
-              style={{
-                background: isWin ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)",
-                border: `1px solid ${isWin ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}`,
-              }}>
-              {isWin ? <CheckCircle2 size={48} className="text-emerald mb-3" /> : <XCircle size={48} className="text-red-400 mb-3" />}
-              <p className={`font-black text-2xl mb-2 ${isWin ? "text-emerald" : "text-red-400"}`}>
-                {isWin ? "Big Win!" : "Better luck next time"}
-              </p>
-              <p className="text-gray-500 text-sm">{prediction.match}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Footer ── */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-3"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.015)" }}>
-        <span className="text-gray-600 text-xs">{prediction.league}</span>
-        <span className={`text-xs font-semibold flex items-center gap-1 ${isWin ? "text-emerald" : "text-red-400"}`}>
-          {isWin ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-          {isWin ? "Prediction correct" : "Prediction missed"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
