@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Filter, BarChart2, ShieldCheck, Zap, Loader2, CalendarX2, Wand2, Sparkles } from "lucide-react";
+import { Filter, BarChart2, ShieldCheck, Zap, Loader2, CalendarX2, Wand2, Sparkles, Trophy, TrendingUp, Shield } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PredictionCard from "@/components/PredictionCard";
@@ -114,34 +114,39 @@ export default function HomePage() {
             </p>
 
             {/* Stats Row */}
-            <div className="flex items-center justify-center gap-2 mb-6 animate-fadeInUp w-full">
+            <div className="flex items-center justify-center gap-3 md:gap-5 mb-14 animate-fadeInUp">
               {[
-                { label: "Win Rate",    value: "87%",  color: "#cba33d" },
-                { label: "Predictions", value: "500+", color: "#e8c05a" },
-                { label: "Verified",    value: "100%", color: "#cba33d" },
+                { icon: <Trophy size={18} />,    label: "Win Rate",    value: "87%",  color: "#cba33d", glow: "rgba(203,163,61,0.35)"   },
+                { icon: <TrendingUp size={18} />, label: "Predictions", value: "500+", color: "#e8c05a", glow: "rgba(232,192,90,0.25)"  },
+                { icon: <Shield size={18} />,     label: "Verified",    value: "100%", color: "#cba33d", glow: "rgba(203,163,61,0.30)"  },
               ].map((stat) => (
-                <div key={stat.label} className="stat-card">
+                <div
+                  key={stat.label}
+                  className="flex flex-col items-center gap-1 px-5 py-4 transition-all duration-300 hover:scale-105 hover:-translate-y-1"
+                  style={{
+                    background: "rgba(17,17,23,0.85)",
+                    border: "1px solid rgba(203,163,61,0.12)",
+                    boxShadow: "0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02)",
+                    backdropFilter: "blur(16px)",
+                    minWidth: "100px",
+                    borderRadius: "16px",
+                  }}
+                >
+                  <div style={{ color: stat.color }}>{stat.icon}</div>
                   <span
+                    className="font-display font-bold"
                     style={{
-                      fontFamily: "'Sora', sans-serif",
-                      fontWeight: 900,
-                      fontSize: "clamp(1.2rem, 4vw, 1.8rem)",
+                      fontSize: "1.6rem",
                       color: stat.color,
+                      filter: `drop-shadow(0 0 12px ${stat.glow})`,
                       lineHeight: 1,
-                      filter: `drop-shadow(0 0 12px ${stat.color}66)`,
                     }}
                   >
                     {stat.value}
                   </span>
                   <span
-                    style={{
-                      fontSize: "0.6rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      color: "#3f3f46",
-                      marginTop: "4px",
-                    }}
+                    className="text-[10px] font-semibold tracking-wider uppercase"
+                    style={{ color: "#3f3f46", fontFamily: "'Sora', sans-serif" }}
                   >
                     {stat.label}
                   </span>
@@ -191,8 +196,8 @@ export default function HomePage() {
         </section>
 
         {/* ── Cards Grid ── */}
-        <section className="pb-16 relative z-10" style={{ background: "#09090b" }}>
-          <div className="page-container pt-4">
+        <section className="pb-20 relative z-10" style={{ background: "#09090b" }}>
+          <div className="page-container pt-10">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <div

@@ -18,6 +18,7 @@ export interface Prediction {
   date: string;
   status: "active" | "completed";
   result: "win" | "loss" | null;
+  purchaseCount?: number;            // total number of purchases for this slip
   createdAt: string;
   updatedAt?: string;
 }
