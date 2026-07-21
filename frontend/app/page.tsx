@@ -52,7 +52,7 @@ export default function HomePage() {
       <main className="min-h-screen" style={{ background: "#09090b" }}>
 
         {/* ── Hero ── */}
-        <section className="pt-28 pb-16 relative overflow-hidden" style={{ background: "#09090b" }}>
+        <section className="pt-28 pb-8 relative overflow-hidden" style={{ background: "#09090b" }}>
 
           {/* Background atmosphere */}
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
@@ -229,7 +229,7 @@ export default function HomePage() {
 
         {/* ── Cards Grid ── */}
         <section className="pb-20 relative z-10" style={{ background: "#09090b" }}>
-          <div className="page-container pt-10">
+          <div className="page-container pt-6">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <div
