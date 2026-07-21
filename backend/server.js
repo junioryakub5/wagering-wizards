@@ -65,6 +65,7 @@ app.use('/api/', generalLimiter);
 
 // Body parsing — IMPORTANT: raw body needed for webhook HMAC verification
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/payment/flw/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 
 // ─── Admin auth ───────────────────────────────────────────────────────────────
@@ -504,6 +505,121 @@ app.post('/api/payment/webhook', async (req, res) => {
     res.sendStatus(200);
   } catch (err) {
     console.error('Webhook error:', err.message);
+    res.sendStatus(500);
+  }
+});
+
+// ─── Routes: Flutterwave (Nigeria — NGN) ────────────────────────────────────
+// FLW initiate — generate reference locally; no FLW API call needed (inline checkout uses public key)
+app.post('/api/payment/flw/initiate', paymentLimiter, async (req, res) => {
+  try {
+    const { email, predictionId } = req.body;
+    if (!email || !predictionId) return res.status(400).json({ error: 'email and predictionId required' });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email format' });
+    const prediction = await db.findPredictionById(predictionId);
+    if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
+    const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
+    const amountNGN  = Math.round(prediction.price * GHS_TO_NGN);
+    const reference  = `WW_FLW_${uuidv4().replace(/-/g,'').slice(0,16)}`;
+    console.log('FLW reference generated — ref:', reference, 'amount NGN:', amountNGN);
+    res.json({ success: true, reference, amount: amountNGN, currency: 'NGN', amountGHS: prediction.price });
+  } catch (err) {
+    safeError(res, 500, 'Failed to initiate payment', err);
+  }
+});
+
+// FLW verify — records payment from inline checkout callback
+app.post('/api/payment/flw/verify', paymentLimiter, async (req, res) => {
+  try {
+    const { reference, predictionId, email, transaction_id, amount, currency } = req.body;
+    if (!reference || !predictionId) return res.status(400).json({ error: 'reference and predictionId required' });
+
+    const existing = await db.findPayment({ reference, status:'success' });
+    if (existing) return res.json({ success:true, reference:existing.reference, accessToken:existing.accessToken, message:'Already verified' });
+
+    const prediction = await db.findPredictionById(predictionId);
+    if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
+
+    const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
+    const expectedNGN = Math.round(prediction.price * GHS_TO_NGN);
+    const paidAmount  = Number(amount) || 0;
+    if (paidAmount > 0 && paidAmount < expectedNGN * 0.95) {
+      console.error(`FLW AMOUNT LOW! Expected ~${expectedNGN} NGN, got ${paidAmount}. Ref: ${reference}`);
+      return res.status(402).json({ error: 'Payment amount insufficient. Please contact support.' });
+    }
+
+    const accessToken = uuidv4();
+    try {
+      await db.createPayment({
+        predictionId, predictionTitle: prediction.match, reference,
+        email: (email || '').toLowerCase().trim(),
+        amount: paidAmount || expectedNGN, currency: currency || 'NGN',
+        status: 'success', accessToken,
+      });
+    } catch (insertErr) {
+      if (insertErr?.message?.includes('unique constraint') || insertErr?.code === '23505') {
+        const saved = await db.findPayment({ reference, status:'success' });
+        if (saved) return res.json({ success:true, reference:saved.reference, accessToken:saved.accessToken });
+      }
+      throw insertErr;
+    }
+
+    console.log('FLW payment recorded — ref:', reference, 'amount:', paidAmount || expectedNGN, currency || 'NGN', '| txn_id:', transaction_id);
+    res.json({ success:true, reference, accessToken });
+  } catch (err) {
+    console.error('FLW verify error:', err.message);
+    safeError(res, 500, 'Flutterwave verification failed', err);
+  }
+});
+
+// Flutterwave webhook — server-to-server, signature-verified
+app.post('/api/payment/flw/webhook', async (req, res) => {
+  try {
+    const secret = process.env.FLW_WEBHOOK_SECRET;
+    const signature = req.headers['verif-hash'];
+
+    if (secret && signature && signature !== secret) {
+      console.error('FLW Webhook: invalid signature');
+      return res.sendStatus(401);
+    }
+
+    const event = JSON.parse(req.body.toString());
+    console.log('FLW Webhook event:', event.event, '| ref:', event.data?.tx_ref);
+
+    if (event.event === 'charge.completed' && event.data?.status === 'successful') {
+      const txn = event.data;
+      const reference = txn.tx_ref;
+
+      const existing = await db.findPayment({ reference, status:'success' });
+      if (existing) { console.log('FLW Webhook: already processed ref:', reference); return res.sendStatus(200); }
+
+      const predictionId = txn.meta?.predictionId;
+      if (!predictionId) { console.error('FLW Webhook: no predictionId for ref:', reference); return res.sendStatus(200); }
+
+      const prediction = await db.findPredictionById(predictionId);
+      if (!prediction) { console.error('FLW Webhook: prediction not found for ref:', reference); return res.sendStatus(200); }
+
+      const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
+      const expectedNGN = Math.round(prediction.price * GHS_TO_NGN);
+      if (txn.amount < expectedNGN) {
+        console.error(`FLW Webhook: amount mismatch! Expected ${expectedNGN}, got ${txn.amount}. Ref: ${reference}`);
+        return res.sendStatus(200);
+      }
+
+      const accessToken = uuidv4();
+      await db.createPayment({
+        predictionId, predictionTitle: prediction.match, reference,
+        email: (txn.customer?.email || '').toLowerCase().trim(),
+        amount: txn.amount, currency: txn.currency || 'NGN',
+        status: 'success', accessToken,
+      });
+      console.log('FLW Webhook: payment recorded — ref:', reference);
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('FLW Webhook error:', err.message);
     res.sendStatus(500);
   }
 });

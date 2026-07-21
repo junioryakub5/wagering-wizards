@@ -52,9 +52,11 @@ echo "✅ Backend tunnel: $BACKEND_URL"
 
 # ── 4. Update frontend .env.local with new backend URL ───────────────────────
 echo "📝 Updating .env.local..."
+FLW_PUBLIC_KEY="FLWPUBK-2733229abd28fd35643c221ef77b8940-X"
 cat > "$ENV_LOCAL" <<EOF
 NEXT_PUBLIC_API_URL=${BACKEND_URL}/api
 NEXT_PUBLIC_PAYSTACK_KEY=${PAYSTACK_KEY}
+NEXT_PUBLIC_FLW_PUBLIC_KEY=${FLW_PUBLIC_KEY}
 EOF
 
 # ── 5. Start frontend ─────────────────────────────────────────────────────────

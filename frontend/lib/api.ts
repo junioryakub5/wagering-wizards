@@ -40,6 +40,26 @@ export async function verifyPayment(
   return res.data;
 }
 
+export async function initiateFlwPayment(
+  email: string,
+  predictionId: string
+): Promise<{ reference: string; amount: number; currency: string; amountGHS: number }> {
+  const res = await api.post("/payment/flw/initiate", { email, predictionId });
+  return res.data;
+}
+
+export async function verifyFlwPayment(
+  reference: string,
+  predictionId: string,
+  email: string,
+  transaction_id: number,
+  amount: number,
+  currency: string
+): Promise<{ reference: string; accessToken: string }> {
+  const res = await api.post("/payment/flw/verify", { reference, predictionId, email, transaction_id, amount, currency });
+  return res.data;
+}
+
 // ─── Access ───────────────────────────────────────────────────────────────────
 
 export async function getUnlockedPrediction(reference: string): Promise<UnlockData> {

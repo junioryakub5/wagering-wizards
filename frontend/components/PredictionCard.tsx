@@ -7,7 +7,7 @@ import {
   CheckCircle, Copy, Check, Trophy, RefreshCcw, Mail,
 } from "lucide-react";
 import { Prediction } from "@/lib/types";
-import { initiatePayment, verifyPayment, getUnlockedPrediction, restoreAccess } from "@/lib/api";
+import { initiatePayment, verifyPayment, getUnlockedPrediction, restoreAccess, initiateFlwPayment, verifyFlwPayment } from "@/lib/api";
 
 // ── Bet slip image thumbnail + lightbox ────────────────────────────────────────
 function BetSlipImage({ src, alt }: { src: string; alt: string }) {
@@ -98,6 +98,36 @@ function loadPaystack(): Promise<void> {
   });
 }
 
+function loadFlutterwave(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).FlutterwaveCheckout) return resolve();
+    const SCRIPT_URL = "https://checkout.flutterwave.com/v3.js";
+    if (document.querySelector(`script[src="${SCRIPT_URL}"]`)) {
+      const poll = setInterval(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).FlutterwaveCheckout) { clearInterval(poll); resolve(); }
+      }, 100);
+      setTimeout(() => { clearInterval(poll); reject(new Error("Flutterwave timed out")); }, 10000);
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = SCRIPT_URL;
+    s.async = true;
+    s.onerror = () => reject(new Error("Could not load Flutterwave script."));
+    s.onload = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any).FlutterwaveCheckout) return resolve();
+      const poll = setInterval(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).FlutterwaveCheckout) { clearInterval(poll); resolve(); }
+      }, 50);
+      setTimeout(() => { clearInterval(poll); reject(new Error("FlutterwaveCheckout not ready")); }, 6000);
+    };
+    document.head.appendChild(s);
+  });
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface UnlockedData {
   content: string;
@@ -158,6 +188,7 @@ function PaymentModal({
   onClose: () => void;
 }) {
   const [tab, setTab]       = useState<ModalTab>("pay");
+  const [currency, setCurrency] = useState<"GHS" | "NGN">("GHS");
   const [email, setEmail]   = useState("");
   const [step, setStep]     = useState<PayStep>("idle");
   const [error, setError]   = useState("");
@@ -213,6 +244,51 @@ function PaymentModal({
     if (!email || !email.includes("@")) { setError("Please enter a valid email address."); return; }
     setError("");
     setStep("paying");
+
+    if (currency === "NGN") {
+      // Flutterwave path
+      try {
+        const initResult = await initiateFlwPayment(email, prediction._id);
+        const { reference, amount } = initResult;
+
+        await loadFlutterwave();
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).FlutterwaveCheckout({
+          public_key: process.env.NEXT_PUBLIC_FLW_PUBLIC_KEY || "FLWPUBK-2733229abd28fd35643c221ef77b8940-X",
+          tx_ref: reference,
+          amount,
+          currency: "NGN",
+          payment_options: "card,banktransfer,ussd",
+          customer: { email, name: email.split("@")[0] },
+          customizations: { title: "Wagering Wizards", description: prediction.match, logo: "" },
+          meta: { predictionId: prediction._id },
+          callback: async (response: { status: string; tx_ref: string; transaction_id: number; amount: number; currency: string }) => {
+            if (response.status === "successful") {
+              try {
+                await verifyFlwPayment(response.tx_ref, prediction._id, email, response.transaction_id, response.amount, response.currency);
+                await finalizeUnlock(response.tx_ref);
+              } catch (err: unknown) {
+                const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || "Verification failed. Contact support.";
+                setError(`${msg} (ref: ${response.tx_ref})`);
+                setStep("idle");
+              }
+            } else {
+              setError("Payment was not successful. Please try again.");
+              setStep("idle");
+            }
+          },
+          onclose: () => { setStep("idle"); },
+        });
+      } catch (err: unknown) {
+        const msg = (err as Error)?.message || "Failed to open Flutterwave. Please try again.";
+        setError(msg);
+        setStep("idle");
+      }
+      return;
+    }
+
+    // GHS / Paystack path (existing logic)
     try {
       await loadPaystack();
       const initResult = await initiatePayment(email, prediction._id);
@@ -297,7 +373,7 @@ function PaymentModal({
           </div>
           <div className="text-center">
             <p style={{ color: "#f4f4f5" }} className="font-semibold text-base mb-1">Verifying Payment…</p>
-            <p style={{ color: "#52525b" }} className="text-xs">Confirming with Paystack and unlocking your prediction</p>
+            <p style={{ color: "#52525b" }} className="text-xs">Confirming payment and unlocking your prediction</p>
           </div>
         </div>
       </div>
@@ -387,6 +463,23 @@ function PaymentModal({
               </div>
             </div>
 
+            {/* Currency selector */}
+            <div className="mx-6 mb-1 flex rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
+              {(["GHS", "NGN"] as const).map((cur) => (
+                <button
+                  key={cur}
+                  onClick={() => { setCurrency(cur); setError(""); }}
+                  className="flex-1 py-2 text-xs font-bold transition-all duration-200"
+                  style={currency === cur
+                    ? { background: "rgba(203,163,61,0.15)", color: "#cba33d", borderBottom: "2px solid #cba33d" }
+                    : { color: "#52525b" }
+                  }
+                >
+                  {cur === "GHS" ? "🇬🇭 GHS (Ghana)" : "🇳🇬 NGN (Nigeria)"}
+                </button>
+              ))}
+            </div>
+
             {/* Perks */}
             <div className="px-6 mb-4 flex gap-5">
               {[{ icon: <Shield size={12} />, label: "Secure payment" }, { icon: <Zap size={12} />, label: "Instant access" }]
@@ -428,11 +521,11 @@ function PaymentModal({
                 }}
               >
                 {step === "paying"
-                  ? (<><Loader2 size={16} className="animate-spin" />Opening Paystack…</>)
-                  : (<><Lock size={15} />Pay &amp; Unlock — GHS {prediction.price}</>)}
+                  ? (<><Loader2 size={16} className="animate-spin" />Opening {currency === 'NGN' ? 'Flutterwave' : 'Paystack'}…</>)
+                  : (<><Lock size={15} />{currency === "GHS" ? `Pay & Unlock — GHS ${prediction.price}` : `Pay & Unlock — NGN ~${Math.round(prediction.price * 125)}`}</>)}
               </button>
               <p className="text-center text-[11px]" style={{ color: "#3f3f46" }}>
-                One-time payment · Powered by Paystack
+                One-time payment · Powered by {currency === 'NGN' ? 'Flutterwave' : 'Paystack'}
               </p>
             </div>
           </>
