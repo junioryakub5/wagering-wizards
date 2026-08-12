@@ -234,10 +234,34 @@ function OverviewSection({ token }: { token: string }) {
     monthRevenue?: number; monthNgnRevenue?: number; monthSales?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [secondsAgo, setSecondsAgo] = useState(0);
 
-  useEffect(() => {
-    adminGetStats(token).then((data) => setStats(data)).catch(console.error).finally(() => setLoading(false));
+  const fetchStats = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true); else setRefreshing(true);
+    try {
+      const data = await adminGetStats(token);
+      setStats(data);
+      setLastUpdated(new Date());
+      setSecondsAgo(0);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); setRefreshing(false); }
   }, [token]);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => fetchStats(true), 30000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
+
+  // Live "X seconds ago" counter
+  useEffect(() => {
+    const tick = setInterval(() => setSecondsAgo(s => s + 1), 1000);
+    return () => clearInterval(tick);
+  }, [lastUpdated]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -247,6 +271,23 @@ function OverviewSection({ token }: { token: string }) {
     </div>
   );
   if (!stats) return <div className="text-slate-400 py-24 text-center">Failed to load stats.</div>;
+
+  const RefreshBar = () => (
+    <div className="flex items-center justify-between mb-4 px-1">
+      <span style={{ fontSize: "0.65rem", color: "#3f3f46" }}>
+        {lastUpdated ? `Updated ${secondsAgo}s ago` : ""}
+      </span>
+      <button
+        onClick={() => fetchStats(true)}
+        disabled={refreshing}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+        style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.2)", color: refreshing ? "#52525b" : "#cba33d" }}
+      >
+        <Loader2 size={11} className={refreshing ? "animate-spin" : ""} />
+        {refreshing ? "Refreshing…" : "Refresh"}
+      </button>
+    </div>
+  );
 
   const totalWins   = stats.totalWins   ?? 0;
   const totalLosses = stats.totalLosses ?? 0;
@@ -274,6 +315,7 @@ function OverviewSection({ token }: { token: string }) {
 
   return (
     <div className="space-y-4">
+      <RefreshBar />
 
       {/* ── Row 1: Today / This Week / This Month hero cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1088,16 +1130,34 @@ function PaymentsSection({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const load = useCallback(async (p: number) => {
-    setLoading(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [secondsAgo, setSecondsAgo] = useState(0);
+
+  const load = useCallback(async (p: number, silent = false) => {
+    if (!silent) setLoading(true); else setRefreshing(true);
     try {
       const res = await adminGetPayments(token, p);
       setPayments(res.data); setTotal(res.total); setPages(res.pages);
+      setLastUpdated(new Date());
+      setSecondsAgo(0);
     } catch { console.error("Failed to load payments"); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setRefreshing(false); }
   }, [token]);
 
   useEffect(() => { load(page); }, [load, page]);
+
+  // Auto-refresh every 30 seconds (silent — no loading spinner)
+  useEffect(() => {
+    const interval = setInterval(() => load(page, true), 30000);
+    return () => clearInterval(interval);
+  }, [load, page]);
+
+  // Live "X seconds ago" counter
+  useEffect(() => {
+    const tick = setInterval(() => setSecondsAgo(s => s + 1), 1000);
+    return () => clearInterval(tick);
+  }, [lastUpdated]);
 
   const filtered = payments.filter(p =>
     p.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -1113,7 +1173,21 @@ function PaymentsSection({ token }: { token: string }) {
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search payments..." className="admin-input pl-9 text-sm" />
         </div>
-        <div className="text-sm" style={{ color: "#52525b" }}>{total} total transactions</div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span style={{ fontSize: "0.65rem", color: "#3f3f46" }}>
+            {lastUpdated ? `Updated ${secondsAgo}s ago` : ""}
+          </span>
+          <button
+            onClick={() => load(page, true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={{ background: "rgba(203,163,61,0.08)", border: "1px solid rgba(203,163,61,0.2)", color: refreshing ? "#52525b" : "#cba33d" }}
+          >
+            <Loader2 size={11} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          <div className="text-sm" style={{ color: "#52525b" }}>{total} total</div>
+        </div>
       </div>
 
       <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(255,255,255,0.07)" }}>

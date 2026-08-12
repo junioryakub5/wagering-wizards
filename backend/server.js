@@ -399,9 +399,12 @@ app.post('/api/payment/initiate', paymentLimiter, async (req, res) => {
     const { email, predictionId } = req.body;
     if (!email || !predictionId) return res.status(400).json({ error: 'email and predictionId required' });
 
+    // Sanitize email — lowercase, trim, strip anything Paystack rejects
+    const cleanEmail = email.toLowerCase().trim().replace(/\s+/g, '');
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email format' });
+    if (!emailRegex.test(cleanEmail)) return res.status(400).json({ error: 'Invalid email format' });
 
     const prediction = await db.findPredictionById(predictionId);
     if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
@@ -409,21 +412,29 @@ app.post('/api/payment/initiate', paymentLimiter, async (req, res) => {
     const reference = `WW_${uuidv4().replace(/-/g,'').slice(0,16)}`;
 
     // Initialize transaction via Paystack API (uses secret key)
-    const { data: psRes } = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      {
-        email: email.toLowerCase().trim(),
-        amount: prediction.price * 100,
-        currency: 'GHS',
-        reference,
-        metadata: { predictionId, match: prediction.match },
-      },
-      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
-    );
+    let psRes;
+    try {
+      const { data } = await axios.post(
+        'https://api.paystack.co/transaction/initialize',
+        {
+          email: cleanEmail,
+          amount: prediction.price * 100,
+          currency: 'GHS',
+          reference,
+          metadata: { predictionId, match: prediction.match },
+        },
+        { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
+      );
+      psRes = data;
+    } catch (axiosErr) {
+      const msg = axiosErr.response?.data?.message || axiosErr.message;
+      console.error('Paystack init failed:', msg);
+      return res.status(502).json({ error: `Payment initialization failed: ${msg}` });
+    }
 
     if (!psRes.status) {
       console.error('Paystack init failed:', psRes.message);
-      return res.status(502).json({ error: 'Payment initialization failed. Please try again.' });
+      return res.status(502).json({ error: `Payment initialization failed: ${psRes.message}` });
     }
 
     console.log('Payment initiated — ref:', reference);

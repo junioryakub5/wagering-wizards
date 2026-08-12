@@ -77,7 +77,7 @@ export default function FlutterwaveButton({ prediction, email, onSuccess, onCanc
         tx_ref: reference,
         amount,
         currency: "NGN",
-        payment_options: "card,banktransfer,ussd",
+        payment_options: "card,account,ussd",
         customer: {
           email,
           name: email.split("@")[0],

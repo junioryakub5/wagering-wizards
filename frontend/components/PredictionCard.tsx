@@ -256,7 +256,7 @@ function PaymentModal({
           tx_ref: reference,
           amount,
           currency: "NGN",
-          payment_options: "account",
+          payment_options: "card,account,ussd",
           customer: { email, name: email.split("@")[0] },
           customizations: { title: "Wagering Wizards", description: prediction.match, logo: "" },
           meta: { predictionId: prediction._id },
