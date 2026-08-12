@@ -318,22 +318,30 @@ const db = {
   },
   async stats() {
     if (supabase) {
-      const [{ count:total }, { count:active }, { count:completed }, { data:payments }] = await Promise.all([
+      const [{ count:total }, { count:active }, { count:completed }, { data:payments }, { data:recentPayments }] = await Promise.all([
         supabase.from('predictions').select('*',{count:'exact',head:true}),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','active'),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed'),
-        supabase.from('payments').select('*').eq('status','success'),
+        // All payments ordered newest-first, 5000 row cap (Supabase default is 1000)
+        supabase.from('payments').select('*').eq('status','success')
+          .order('created_at', { ascending:false }).limit(5000),
+        // Lightweight top-20 for activity feed
+        supabase.from('payments').select('*').eq('status','success')
+          .order('created_at', { ascending:false }).limit(20),
       ]);
-      return { total, active, completed, payments:payments.map(toMoney) };
+      return { total, active, completed, payments: payments.map(toMoney), recentPayments: recentPayments.map(toMoney) };
     }
     const payments = memPayments.filter(p => p.status==='success');
+    const sorted   = [...payments].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
     return {
-      total:memPredictions.length,
-      active:memPredictions.filter(p=>p.status==='active').length,
-      completed:memPredictions.filter(p=>p.status==='completed').length,
-      payments,
+      total: memPredictions.length,
+      active: memPredictions.filter(p=>p.status==='active').length,
+      completed: memPredictions.filter(p=>p.status==='completed').length,
+      payments: sorted,
+      recentPayments: sorted.slice(0, 20),
     };
   },
+
 };
 
 // ─── Helper: safe error response (never leak internals) ──────────────────────
@@ -789,7 +797,7 @@ app.get('/api/admin/payments', adminAuth, async (req, res) => {
 
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
-    const { total, active, completed, payments } = await db.stats();
+    const { total, active, completed, payments, recentPayments } = await db.stats();
 
     // ── Time boundaries (start-of-day in UTC) ────────────────────────────────
     const now        = new Date();
@@ -839,13 +847,11 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
       totalLosses = memPredictions.filter(p => p.result === 'loss').length;
     }
 
-    // ── Recent activity ───────────────────────────────────────────────────────
-    const recentActivity = [...payments]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 20)
-      .map(p => ({
-        _id: p._id, email: p.email, predictionTitle: p.predictionTitle || '—',
-        amount: p.amount, currency: p.currency || 'GHS', status: p.status, createdAt: p.createdAt,
-      }));
+    // ── Recent activity — already top-20 newest-first from DB ────────────────
+    const recentActivity = recentPayments.map(p => ({
+      _id: p._id, email: p.email, predictionTitle: p.predictionTitle || '—',
+      amount: p.amount, currency: p.currency || 'GHS', status: p.status, createdAt: p.createdAt,
+    }));
 
     res.json({ success: true, data: {
       totalSlips: total, activeSlips: active, completedSlips: completed,
