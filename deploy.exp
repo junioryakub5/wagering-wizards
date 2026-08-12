@@ -1,54 +1,66 @@
 #!/usr/bin/expect -f
+# ─── Wagering Wizards — VPS Deploy ────────────────────────────────────────────
+# SETUP (first time only, run manually on the server):
+#   1. Set up SSH key auth so you don't need a password here
+#   2. Create /var/www/wagering-wizards/backend/.env with all secrets
+#   3. Never commit secrets to this file or to git
 
 set timeout 300
-set password "Gbangbin@2001"
 set host "187.124.35.84"
 
+# Use SSH key auth — no password needed
 spawn ssh -o StrictHostKeyChecking=no root@$host
 
-expect {
-    "password:" { send "$password\r" }
-    "Password:" { send "$password\r" }
+expect "# " {
+    send "echo '🚀 Wagering Wizards — Deploying...'\r"
 }
 
 expect "# " {
-    send "set -e\r"
-}
-
-expect "# " {
-    send "echo '📦 Installing PM2...'\r"
+    send "echo '📦 Installing PM2 if needed...'\r"
 }
 
 expect "# " {
     send "npm install -g pm2 2>&1 | tail -2\r"
 }
 
+# Safe deploy: backup existing dir, clone, then remove backup on success
 expect "# " {
-    send "echo '📁 Setting up app directory...'\r"
+    send "echo '📁 Safe deploy — backing up current app...'\r"
 }
 
 expect "# " {
-    send "rm -rf /var/www/wagering-wizards && git clone https://github.com/junioryakub5/wagering-wizards.git /var/www/wagering-wizards\r"
+    send "cp -r /var/www/wagering-wizards /var/www/wagering-wizards-backup 2>/dev/null || true\r"
+}
+
+expect "# " {
+    send "rm -rf /var/www/wagering-wizards && git clone https://github.com/junioryakub5/wagering-wizards.git /var/www/wagering-wizards || { echo '❌ Clone failed — restoring backup'; mv /var/www/wagering-wizards-backup /var/www/wagering-wizards; exit 1; }\r"
+}
+
+expect "# " {
+    send "rm -rf /var/www/wagering-wizards-backup\r"
+}
+
+expect "# " {
+    send "echo '📦 Installing backend dependencies...'\r"
 }
 
 expect "# " {
     send "cd /var/www/wagering-wizards/backend && npm install 2>&1 | tail -3\r"
 }
 
+# NOTE: .env file should already exist on the VPS with secrets.
+# Do NOT write secrets in this script. If first deploy, SSH in manually and create the file.
 expect "# " {
-    send {cat > /var/www/wagering-wizards/backend/.env << 'ENV'
-PORT=5001
-PAYSTACK_SECRET_KEY=sk_live_3744f7093d8f56a4f37168c2b2b316a876d5990e
-ADMIN_TOKEN=wagaring-wizards-admin-2024
-CLIENT_URL=*
-SUPABASE_URL=https://sqpiejdiovtcemfmmkhr.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxcGllamRpb3Z0Y2VtZm1ta2hyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjA1NDI1NCwiZXhwIjoyMDkxNjMwMjU0fQ.RcoSHFHFZVBcWhEpWjGc6CzDDrKvYZvgjPO-W09Cm2Q
-ENV
-}
+    send "echo '🔑 Checking .env exists...'\r"
 }
 
 expect "# " {
-    send "pm2 delete wagering-wizards-api 2>/dev/null; pm2 start /var/www/wagering-wizards/backend/server.js --name wagering-wizards-api && pm2 save\r"
+    send "test -f /var/www/wagering-wizards/backend/.env && echo '✅ .env found' || echo '❌ .env missing — create it on the server first!'\r"
+}
+
+# Start/reload with PM2 using ecosystem.config.js
+expect "# " {
+    send "pm2 delete wagering-wizards-api 2>/dev/null; pm2 start /var/www/wagering-wizards/backend/ecosystem.config.js && pm2 save\r"
 }
 
 expect "# " {
@@ -64,3 +76,4 @@ expect "# " {
 }
 
 expect eof
+

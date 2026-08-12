@@ -256,7 +256,7 @@ function PaymentModal({
           tx_ref: reference,
           amount,
           currency: "NGN",
-          payment_options: "card,banktransfer,ussd",
+          payment_options: "account",
           customer: { email, name: email.split("@")[0] },
           customizations: { title: "Wagering Wizards", description: prediction.match, logo: "" },
           meta: { predictionId: prediction._id },
@@ -327,16 +327,9 @@ function PaymentModal({
     setRestoreError("");
     setRestoreLoading(true);
     try {
-      const unlock = await restoreAccess(restoreEmail, prediction._id);
-      const data: UnlockedData = {
-        content:     unlock.prediction.content     || "",
-        bookingCode: (unlock.prediction as {bookingCode?: string}).bookingCode || "",
-        tips:        (unlock.prediction as {tips?: string[]}).tips        || [],
-        imageUrl:    unlock.prediction.imageUrl    || "",
-        reference:   unlock.payment.reference,
-      };
-      saveUnlocked(prediction._id, data);
-      onSuccess(data);
+      const restored = await restoreAccess(restoreEmail, prediction._id);
+      // restored = { reference, accessToken } — use reference to fetch full prediction
+      await finalizeUnlock(restored.reference);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
@@ -346,6 +339,7 @@ function PaymentModal({
       setRestoreLoading(false);
     }
   };
+
 
   // ── Verifying overlay ──────────────────────────────────────────────────────
   if (step === "verifying") {

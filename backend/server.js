@@ -809,12 +809,9 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
       totalWins   = wins   || 0;
       totalLosses = losses || 0;
     } else {
-      // In-memory fallback
-      const { memPredictions } = global._memStore || {};
-      if (memPredictions) {
-        totalWins   = memPredictions.filter(p => p.result === 'win').length;
-        totalLosses = memPredictions.filter(p => p.result === 'loss').length;
-      }
+      // In-memory fallback — use module-level memPredictions directly
+      totalWins   = memPredictions.filter(p => p.result === 'win').length;
+      totalLosses = memPredictions.filter(p => p.result === 'loss').length;
     }
 
     // ── Recent activity ───────────────────────────────────────────────────────

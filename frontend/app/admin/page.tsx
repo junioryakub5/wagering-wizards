@@ -236,8 +236,7 @@ function OverviewSection({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    adminGetStats(token).then((data: any) => setStats(data)).catch(console.error).finally(() => setLoading(false));
+    adminGetStats(token).then((data) => setStats(data)).catch(console.error).finally(() => setLoading(false));
   }, [token]);
 
   if (loading) return (
@@ -1068,7 +1067,7 @@ function ManageSlipsSection({ token }: { token: string }) {
             proofImageUrl: editing.proofImageUrl || "",
             date: new Date(editing.date).toISOString().split("T")[0],
             status: editing.status, result: editing.result,
-            startDay: "", endDay: "",
+            startDay: editing.startDay || "", endDay: editing.endDay || "",
           } : EMPTY_FORM}
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditing(null); }}

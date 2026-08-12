@@ -75,12 +75,9 @@ export async function getUnlockedPrediction(reference: string): Promise<UnlockDa
 export async function restoreAccess(
   email: string,
   predictionId: string
-): Promise<UnlockData> {
-  const res = await api.post<ApiResponse<UnlockData>>("/payment/restore", {
-    email,
-    predictionId,
-  });
-  return res.data.data;
+): Promise<{ reference: string; accessToken: string }> {
+  const res = await api.post("/payment/restore", { email, predictionId });
+  return res.data; // backend returns { success, reference, accessToken } flat
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -137,7 +134,21 @@ export async function adminGetStats(token: string): Promise<{
   activeSlips: number;
   completedSlips: number;
   totalRevenue: number;
+  totalNgnRevenue: number;
   totalSales: number;
+  ghsSales: number;
+  ngnSales: number;
+  todayRevenue: number;
+  todayNgnRevenue: number;
+  todaySales: number;
+  weekRevenue: number;
+  weekNgnRevenue: number;
+  weekSales: number;
+  monthRevenue: number;
+  monthNgnRevenue: number;
+  monthSales: number;
+  totalWins: number;
+  totalLosses: number;
   recentActivity: RecentActivity[];
 }> {
   const res = await api.get("/admin/stats", { headers: adminHeaders(token) });

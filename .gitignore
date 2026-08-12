@@ -7,6 +7,9 @@ frontend/out/
 **/.env
 **/.env.local
 **/.env*.local
+backend/.env
+# Deployment scripts with secrets
+deploy.exp
 # Logs
 *.log
 npm-debug.log*
