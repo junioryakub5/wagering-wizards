@@ -169,11 +169,11 @@ let memPredictions = [
 let memPayments = [];
 
 // ─── Supabase row mappers (snake_case → camelCase) ────────────────────────────
-const toP = r => r ? ({ _id:r.id, match:r.match, league:r.league, odds:r.odds,
+const toP = (r, purchaseCount = 0) => r ? ({ _id:r.id, match:r.match, league:r.league, odds:r.odds,
   oddsCategory:r.odds_category, price:r.price, content:r.content, bookingCode:r.booking_code,
   tips:r.tips||[], imageUrl:r.image_url, proofImageUrl:r.proof_image_url,
   startDay:r.start_day, endDay:r.end_day, date:r.date, status:r.status,
-  result:r.result, createdAt:r.created_at }) : null;
+  result:r.result, purchaseCount, createdAt:r.created_at }) : null;
 
 const toMoney = r => r ? ({ _id:r.id, predictionId:r.prediction_id, predictionTitle:r.prediction_title,
   reference:r.reference, email:r.email, amount:r.amount, currency:r.currency,
@@ -257,11 +257,25 @@ const db = {
   },
   async allPredictions() {
     if (supabase) {
-      const { data, error } = await supabase.from('predictions').select('*').order('created_at', { ascending: false });
+      // Fetch predictions + count of successful payments per prediction
+      const [{ data, error }, { data: payCounts }] = await Promise.all([
+        supabase.from('predictions').select('*').order('created_at', { ascending: false }),
+        supabase.from('payments').select('prediction_id').eq('status', 'success'),
+      ]);
       if (error) throw error;
-      return data.map(toP);
+      // Build a count map: predictionId → number of successful payments
+      const countMap = {};
+      (payCounts || []).forEach(p => { countMap[p.prediction_id] = (countMap[p.prediction_id] || 0) + 1; });
+      return data.map(r => toP(r, countMap[r.id] || 0));
     }
-    return [...memPredictions].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+    // In-memory: count from memPayments
+    const countMap = {};
+    memPayments.filter(p => p.status === 'success').forEach(p => {
+      countMap[p.predictionId] = (countMap[p.predictionId] || 0) + 1;
+    });
+    return [...memPredictions]
+      .sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt))
+      .map(p => ({ ...p, purchaseCount: countMap[p._id] || 0 }));
   },
   async findPayment(query) {
     if (supabase) {
