@@ -9,7 +9,7 @@ export PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH
 BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
 FRONTEND_DIR="$(cd "$(dirname "$0")/frontend" && pwd)"
 ENV_LOCAL="$FRONTEND_DIR/.env.local"
-PAYSTACK_KEY="pk_live_149f5deb5a54340e126e111e9819de2c8de870f9"
+PAYSTACK_KEY="pk_live_4ba3f755553d08d499f72b21e4690fd4b1bcb78b"
 
 echo ""
 echo "🧙 Wagering Wizards — Starting up..."
