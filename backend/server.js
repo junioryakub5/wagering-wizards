@@ -318,80 +318,70 @@ const db = {
   },
   async stats() {
     if (supabase) {
-      // ── Time boundaries ────────────────────────────────────────────────────
-      const now        = new Date();
-      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
-      const weekStart  = new Date(new Date(todayStart).getTime() - 6 * 86400000).toISOString();
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-
+      // Fetch prediction counts + recent activity in parallel
       const [
         { count: total },
         { count: active },
         { count: completed },
-        // Aggregate sums — no row-count cap; computed entirely in Postgres
-        { data: ghsAll },
-        { data: ngnAll },
-        { data: ghsToday },
-        { data: ngnToday },
-        { data: ghsWeek },
-        { data: ngnWeek },
-        { data: ghsMonth },
-        { data: ngnMonth },
-        // Counts
-        { count: totalSalesCount },
-        { count: todaySalesCount },
-        { count: weekSalesCount },
-        { count: monthSalesCount },
-        { count: ghsSalesCount },
-        { count: ngnSalesCount },
-        // Recent activity feed (lightweight, only 20 rows)
-        { data: recentPayments },
+        { data: allPaymentRows, error: payErr },
+        { data: recentRaw },
       ] = await Promise.all([
         supabase.from('predictions').select('*', { count: 'exact', head: true }),
         supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-        // Revenue sums via aggregate select — bypasses row limits entirely
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS'),
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN'),
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS').gte('created_at', todayStart),
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN').gte('created_at', todayStart),
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS').gte('created_at', weekStart),
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN').gte('created_at', weekStart),
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS').gte('created_at', monthStart),
-        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN').gte('created_at', monthStart),
-        // Counts
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success'),
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').gte('created_at', todayStart),
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').gte('created_at', weekStart),
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').gte('created_at', monthStart),
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').eq('currency', 'GHS'),
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').eq('currency', 'NGN'),
-        // Recent activity
-        supabase.from('payments').select('*').eq('status', 'success').order('created_at', { ascending: false }).limit(20),
+        // Only fetch the 3 columns we need — keeps payload tiny even with many rows
+        supabase.from('payments').select('amount, currency, created_at').eq('status', 'success'),
+        supabase.from('payments').select('*').eq('status', 'success')
+          .order('created_at', { ascending: false }).limit(20),
       ]);
 
-      // Extract sums from aggregate response (Supabase returns [{ sum: value }])
-      const sumOf = (rows) => Number(rows?.[0]?.sum ?? 0);
+      if (payErr) throw payErr;
+
+      // ── Time boundaries ───────────────────────────────────────────────────
+      const now        = new Date();
+      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const weekStart  = new Date(todayStart.getTime() - 6 * 86400000);
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+      // ── Aggregate in JS ───────────────────────────────────────────────────
+      let totalRevenue = 0, totalNgnRevenue = 0, totalSales = 0, ghsSales = 0, ngnSales = 0;
+      let todayRevenue = 0, todayNgnRevenue = 0, todaySales = 0;
+      let weekRevenue  = 0, weekNgnRevenue  = 0, weekSales  = 0;
+      let monthRevenue = 0, monthNgnRevenue = 0, monthSales = 0;
+
+      for (const p of (allPaymentRows || [])) {
+        const amt = p.amount || 0;
+        const ts  = new Date(p.created_at);
+        const isGhs = p.currency === 'GHS';
+        const isNgn = p.currency === 'NGN';
+
+        if (isGhs) { totalRevenue    += amt; ghsSales++; }
+        if (isNgn) { totalNgnRevenue += amt; ngnSales++; }
+        totalSales++;
+
+        if (ts >= todayStart) {
+          if (isGhs) { todayRevenue    += amt; } else if (isNgn) { todayNgnRevenue += amt; }
+          todaySales++;
+        }
+        if (ts >= weekStart) {
+          if (isGhs) { weekRevenue    += amt; } else if (isNgn) { weekNgnRevenue += amt; }
+          weekSales++;
+        }
+        if (ts >= monthStart) {
+          if (isGhs) { monthRevenue    += amt; } else if (isNgn) { monthNgnRevenue += amt; }
+          monthSales++;
+        }
+      }
 
       return {
         total, active, completed,
         _aggregated: true,
-        totalRevenue:    sumOf(ghsAll),
-        totalNgnRevenue: sumOf(ngnAll),
-        totalSales:      totalSalesCount || 0,
-        ghsSales:        ghsSalesCount || 0,
-        ngnSales:        ngnSalesCount || 0,
-        todayRevenue:    sumOf(ghsToday),
-        todayNgnRevenue: sumOf(ngnToday),
-        todaySales:      todaySalesCount || 0,
-        weekRevenue:     sumOf(ghsWeek),
-        weekNgnRevenue:  sumOf(ngnWeek),
-        weekSales:       weekSalesCount || 0,
-        monthRevenue:    sumOf(ghsMonth),
-        monthNgnRevenue: sumOf(ngnMonth),
-        monthSales:      monthSalesCount || 0,
+        totalRevenue, totalNgnRevenue, totalSales, ghsSales, ngnSales,
+        todayRevenue, todayNgnRevenue, todaySales,
+        weekRevenue,  weekNgnRevenue,  weekSales,
+        monthRevenue, monthNgnRevenue, monthSales,
         payments: [],
-        recentPayments: recentPayments.map(toMoney),
+        recentPayments: (recentRaw || []).map(toMoney),
       };
     }
     const payments = memPayments.filter(p => p.status==='success');
