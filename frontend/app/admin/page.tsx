@@ -10,6 +10,7 @@ import {
 import {
   adminGetPredictions, adminCreatePrediction, adminUpdatePrediction,
   adminDeletePrediction, adminGetStats, adminGetPayments, adminUploadImage,
+  adminGetRevenueByDay,
 } from "@/lib/api";
 import { Prediction, RecentActivity, PaymentRecord } from "@/lib/types";
 
@@ -233,21 +234,48 @@ function OverviewSection({ token }: { token: string }) {
     weekRevenue?: number; weekNgnRevenue?: number; weekSales?: number;
     monthRevenue?: number; monthNgnRevenue?: number; monthSales?: number;
   } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [dailyRevenue, setDailyRevenue] = useState<{ date: string; ghs: number; ngn: number; sales: number }[]>([]);
+
+  // Date range helpers
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  const daysAgoStr = (n: number) => {
+    const d = new Date(); d.setUTCDate(d.getUTCDate() - n);
+    return d.toISOString().slice(0, 10);
+  };
+  const monthStartStr = () => {
+    const d = new Date();
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  };
+
+  type Preset = "7d" | "14d" | "30d" | "mtd" | "custom";
+  const [preset, setPreset]   = useState<Preset>("30d");
+  const [fromDate, setFromDate] = useState(daysAgoStr(29));
+  const [toDate,   setToDate]   = useState(todayStr());
+  // pendingFrom/To are what the inputs show before Apply is clicked
+  const [pendingFrom, setPendingFrom] = useState(fromDate);
+  const [pendingTo,   setPendingTo]   = useState(toDate);
+
+  const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [secondsAgo, setSecondsAgo] = useState(0);
+  const [secondsAgo, setSecondsAgo]   = useState(0);
 
-  const fetchStats = useCallback(async (silent = false) => {
+  const fetchStats = useCallback(async (silent = false, overrideFrom?: string, overrideTo?: string) => {
     if (!silent) setLoading(true); else setRefreshing(true);
+    const f = overrideFrom ?? fromDate;
+    const t = overrideTo   ?? toDate;
     try {
-      const data = await adminGetStats(token);
+      const [data, daily] = await Promise.all([
+        adminGetStats(token),
+        adminGetRevenueByDay(token, { from: f, to: t }),
+      ]);
       setStats(data);
+      setDailyRevenue(daily);
       setLastUpdated(new Date());
       setSecondsAgo(0);
     } catch (e) { console.error(e); }
     finally { setLoading(false); setRefreshing(false); }
-  }, [token]);
+  }, [token, fromDate, toDate]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
@@ -262,6 +290,29 @@ function OverviewSection({ token }: { token: string }) {
     const tick = setInterval(() => setSecondsAgo(s => s + 1), 1000);
     return () => clearInterval(tick);
   }, [lastUpdated]);
+
+  // Apply a quick preset
+  const applyPreset = (p: Preset) => {
+    setPreset(p);
+    let f = fromDate, t = todayStr();
+    if (p === "7d")   { f = daysAgoStr(6);  }
+    if (p === "14d")  { f = daysAgoStr(13); }
+    if (p === "30d")  { f = daysAgoStr(29); }
+    if (p === "mtd")  { f = monthStartStr(); }
+    if (p === "custom") return; // don't auto-fetch; user will click Apply
+    setFromDate(f); setToDate(t);
+    setPendingFrom(f); setPendingTo(t);
+    fetchStats(false, f, t);
+  };
+
+  // Apply custom date inputs
+  const applyCustom = () => {
+    if (!pendingFrom || !pendingTo) return;
+    const f = pendingFrom <= pendingTo ? pendingFrom : pendingTo;
+    const t = pendingFrom <= pendingTo ? pendingTo   : pendingFrom;
+    setFromDate(f); setToDate(t);
+    fetchStats(false, f, t);
+  };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -552,6 +603,152 @@ function OverviewSection({ token }: { token: string }) {
           </div>
         </div>
       </div>
+
+      {/* ── Revenue by Day Chart ── */}
+      {(() => {
+        const maxGhs = Math.max(...dailyRevenue.map(d => d.ghs), 1);
+        const maxNgn = Math.max(...dailyRevenue.map(d => d.ngn), 1);
+        const hasNgn = dailyRevenue.some(d => d.ngn > 0);
+        const totalPeriodGhs   = dailyRevenue.reduce((s, d) => s + d.ghs, 0);
+        const totalPeriodSales = dailyRevenue.reduce((s, d) => s + d.sales, 0);
+        const numDays = dailyRevenue.length;
+        const barGap  = numDays > 60 ? 1 : numDays > 30 ? 2 : numDays > 14 ? 3 : numDays > 7 ? 6 : 10;
+        const labelEvery = numDays > 60 ? 10 : numDays > 30 ? 5 : numDays > 14 ? 2 : 1;
+
+        const inputStyle: React.CSSProperties = {
+          background: "rgba(9,9,11,0.8)", border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 8, color: "#f4f4f5", fontSize: "0.72rem", padding: "4px 8px",
+          outline: "none", colorScheme: "dark",
+        };
+
+        return (
+          <div className="rounded-2xl" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(203,163,61,0.08)", padding: "1.25rem" }}>
+
+            {/* Header row */}
+            <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
+              <div>
+                <p style={{ fontWeight: 700, fontSize: "0.85rem", color: "#f4f4f5", fontFamily: "'Sora', sans-serif" }}>Revenue by Day</p>
+                <p style={{ fontSize: "0.65rem", color: "#3f3f46", marginTop: 2 }}>
+                  GHS {totalPeriodGhs.toFixed(2)} · {totalPeriodSales} sales · {fromDate} → {toDate}
+                </p>
+              </div>
+
+              {/* Preset + Custom controls */}
+              <div className="flex flex-wrap gap-1 items-center">
+                {(["7d", "14d", "30d", "mtd", "custom"] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => applyPreset(p)}
+                    style={{
+                      padding: "3px 10px", borderRadius: 8, fontSize: "0.68rem", fontWeight: 700,
+                      background: preset === p ? "rgba(203,163,61,0.18)" : "rgba(255,255,255,0.04)",
+                      border: preset === p ? "1px solid rgba(203,163,61,0.4)" : "1px solid rgba(255,255,255,0.06)",
+                      color: preset === p ? "#cba33d" : "#52525b",
+                      cursor: "pointer", transition: "all 0.15s", textTransform: "uppercase" as const,
+                    }}
+                  >
+                    {p === "mtd" ? "MTD" : p === "custom" ? "Custom" : p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom date inputs — only shown when preset === "custom" */}
+            {preset === "custom" && (
+              <div className="flex flex-wrap items-center gap-2 mb-3 p-3 rounded-xl" style={{ background: "rgba(203,163,61,0.04)", border: "1px solid rgba(203,163,61,0.1)" }}>
+                <span style={{ fontSize: "0.68rem", color: "#52525b" }}>From</span>
+                <input
+                  type="date"
+                  value={pendingFrom}
+                  max={pendingTo || todayStr()}
+                  onChange={e => setPendingFrom(e.target.value)}
+                  style={inputStyle}
+                />
+                <span style={{ fontSize: "0.68rem", color: "#52525b" }}>To</span>
+                <input
+                  type="date"
+                  value={pendingTo}
+                  min={pendingFrom}
+                  max={todayStr()}
+                  onChange={e => setPendingTo(e.target.value)}
+                  style={inputStyle}
+                />
+                <button
+                  onClick={applyCustom}
+                  disabled={!pendingFrom || !pendingTo}
+                  style={{
+                    padding: "4px 14px", borderRadius: 8, fontSize: "0.68rem", fontWeight: 700,
+                    background: "linear-gradient(135deg, #cba33d, #e8c05a)", color: "#09090b",
+                    border: "none", cursor: "pointer", opacity: (!pendingFrom || !pendingTo) ? 0.4 : 1,
+                  }}
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+
+            {/* Bars */}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: barGap, height: 120 }}>
+              {dailyRevenue.map((d, i) => {
+                const ghsPct  = maxGhs > 0 ? (d.ghs / maxGhs) * 100 : 0;
+                const ngnPct  = maxNgn > 0 ? (d.ngn / maxNgn) * 100 : 0;
+                const label   = new Date(d.date + "T00:00:00Z").toLocaleDateString([], { month: "short", day: "numeric" });
+                const isToday = d.date === new Date().toISOString().slice(0, 10);
+                const showLabel = i % labelEvery === 0 || i === dailyRevenue.length - 1;
+                return (
+                  <div
+                    key={d.date}
+                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "default" }}
+                    title={`${label}\nGHS ${d.ghs.toFixed(2)}${hasNgn ? `\nNGN ${d.ngn.toLocaleString()}` : ""}\n${d.sales} sale${d.sales !== 1 ? "s" : ""}`}
+                  >
+                    <div style={{ width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", height: 100, gap: 1 }}>
+                      {hasNgn && (
+                        <div style={{
+                          width: "100%", borderRadius: "2px 2px 0 0",
+                          height: `${ngnPct}%`, minHeight: d.ngn > 0 ? 2 : 0,
+                          background: d.ngn > 0 ? "rgba(0,176,116,0.55)" : "transparent",
+                          transition: "height 0.4s ease",
+                        }} />
+                      )}
+                      <div style={{
+                        width: "100%", borderRadius: hasNgn ? 0 : "3px 3px 0 0",
+                        height: `${ghsPct}%`, minHeight: d.ghs > 0 ? 2 : 0,
+                        background: d.ghs > 0
+                          ? isToday ? "linear-gradient(180deg, #e8c05a, #cba33d)" : "rgba(203,163,61,0.55)"
+                          : "rgba(255,255,255,0.04)",
+                        transition: "height 0.4s ease",
+                      }} />
+                    </div>
+                    {showLabel && (
+                      <p style={{ fontSize: "0.45rem", color: isToday ? "#cba33d" : "#3f3f46", whiteSpace: "nowrap", fontWeight: isToday ? 700 : 400 }}>
+                        {numDays <= 14 ? label : new Date(d.date + "T00:00:00Z").getDate()}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-4 mt-3">
+              <div className="flex items-center gap-1.5">
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "rgba(203,163,61,0.7)" }} />
+                <span style={{ fontSize: "0.62rem", color: "#52525b" }}>GHS (Paystack)</span>
+              </div>
+              {hasNgn && (
+                <div className="flex items-center gap-1.5">
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "rgba(0,176,116,0.6)" }} />
+                  <span style={{ fontSize: "0.62rem", color: "#52525b" }}>NGN (Flutterwave)</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5 ml-auto">
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "linear-gradient(180deg, #e8c05a, #cba33d)" }} />
+                <span style={{ fontSize: "0.62rem", color: "#cba33d" }}>Today</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Recent Payments ── */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(203,163,61,0.08)" }}>

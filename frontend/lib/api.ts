@@ -165,3 +165,14 @@ export async function adminGetPayments(
   });
   return { data: res.data.data, total: res.data.total, pages: res.data.pages };
 }
+
+export async function adminGetRevenueByDay(
+  token: string,
+  params: { days: number } | { from: string; to: string }
+): Promise<{ date: string; ghs: number; ngn: number; sales: number }[]> {
+  const res = await api.get("/admin/revenue-by-day", {
+    params,
+    headers: adminHeaders(token),
+  });
+  return res.data.data;
+}

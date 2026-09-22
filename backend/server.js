@@ -318,18 +318,81 @@ const db = {
   },
   async stats() {
     if (supabase) {
-      const [{ count:total }, { count:active }, { count:completed }, { data:payments }, { data:recentPayments }] = await Promise.all([
-        supabase.from('predictions').select('*',{count:'exact',head:true}),
-        supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','active'),
-        supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed'),
-        // All payments ordered newest-first, 5000 row cap (Supabase default is 1000)
-        supabase.from('payments').select('*').eq('status','success')
-          .order('created_at', { ascending:false }).limit(5000),
-        // Lightweight top-20 for activity feed
-        supabase.from('payments').select('*').eq('status','success')
-          .order('created_at', { ascending:false }).limit(20),
+      // ── Time boundaries ────────────────────────────────────────────────────
+      const now        = new Date();
+      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+      const weekStart  = new Date(new Date(todayStart).getTime() - 6 * 86400000).toISOString();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+
+      const [
+        { count: total },
+        { count: active },
+        { count: completed },
+        // Aggregate sums — no row-count cap; computed entirely in Postgres
+        { data: ghsAll },
+        { data: ngnAll },
+        { data: ghsToday },
+        { data: ngnToday },
+        { data: ghsWeek },
+        { data: ngnWeek },
+        { data: ghsMonth },
+        { data: ngnMonth },
+        // Counts
+        { count: totalSalesCount },
+        { count: todaySalesCount },
+        { count: weekSalesCount },
+        { count: monthSalesCount },
+        { count: ghsSalesCount },
+        { count: ngnSalesCount },
+        // Recent activity feed (lightweight, only 20 rows)
+        { data: recentPayments },
+      ] = await Promise.all([
+        supabase.from('predictions').select('*', { count: 'exact', head: true }),
+        supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+        // Revenue sums via aggregate select — bypasses row limits entirely
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS'),
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN'),
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS').gte('created_at', todayStart),
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN').gte('created_at', todayStart),
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS').gte('created_at', weekStart),
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN').gte('created_at', weekStart),
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'GHS').gte('created_at', monthStart),
+        supabase.from('payments').select('amount.sum()').eq('status', 'success').eq('currency', 'NGN').gte('created_at', monthStart),
+        // Counts
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success'),
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').gte('created_at', todayStart),
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').gte('created_at', weekStart),
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').gte('created_at', monthStart),
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').eq('currency', 'GHS'),
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'success').eq('currency', 'NGN'),
+        // Recent activity
+        supabase.from('payments').select('*').eq('status', 'success').order('created_at', { ascending: false }).limit(20),
       ]);
-      return { total, active, completed, payments: payments.map(toMoney), recentPayments: recentPayments.map(toMoney) };
+
+      // Extract sums from aggregate response (Supabase returns [{ sum: value }])
+      const sumOf = (rows) => Number(rows?.[0]?.sum ?? 0);
+
+      return {
+        total, active, completed,
+        _aggregated: true,
+        totalRevenue:    sumOf(ghsAll),
+        totalNgnRevenue: sumOf(ngnAll),
+        totalSales:      totalSalesCount || 0,
+        ghsSales:        ghsSalesCount || 0,
+        ngnSales:        ngnSalesCount || 0,
+        todayRevenue:    sumOf(ghsToday),
+        todayNgnRevenue: sumOf(ngnToday),
+        todaySales:      todaySalesCount || 0,
+        weekRevenue:     sumOf(ghsWeek),
+        weekNgnRevenue:  sumOf(ngnWeek),
+        weekSales:       weekSalesCount || 0,
+        monthRevenue:    sumOf(ghsMonth),
+        monthNgnRevenue: sumOf(ngnMonth),
+        monthSales:      monthSalesCount || 0,
+        payments: [],
+        recentPayments: recentPayments.map(toMoney),
+      };
     }
     const payments = memPayments.filter(p => p.status==='success');
     const sorted   = [...payments].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -795,40 +858,131 @@ app.get('/api/admin/payments', adminAuth, async (req, res) => {
   } catch (err) { safeError(res, 500, 'Failed to load payments', err); }
 });
 
+// ─── Revenue by Day ───────────────────────────────────────────────────────────
+// Accepts ?from=YYYY-MM-DD&to=YYYY-MM-DD  OR  ?days=N (default 30, max 366)
+app.get('/api/admin/revenue-by-day', adminAuth, async (req, res) => {
+  try {
+    const todayUtc = new Date().toISOString().slice(0, 10);
+
+    let fromDate, toDate;
+    if (req.query.from && req.query.to) {
+      // Validate format YYYY-MM-DD
+      const isoRe = /^\d{4}-\d{2}-\d{2}$/;
+      if (!isoRe.test(req.query.from) || !isoRe.test(req.query.to))
+        return res.status(400).json({ error: 'from/to must be YYYY-MM-DD' });
+      fromDate = req.query.from < req.query.to ? req.query.from : req.query.to;
+      toDate   = req.query.from < req.query.to ? req.query.to   : req.query.from;
+      if (toDate > todayUtc) toDate = todayUtc; // never future
+    } else {
+      const days = Math.min(366, Math.max(1, parseInt(req.query.days) || 30));
+      const start = new Date(Date.UTC(...todayUtc.split('-').map(Number)) - (days - 1) * 86400000);
+      fromDate = start.toISOString().slice(0, 10);
+      toDate   = todayUtc;
+    }
+
+    // Cap to 366 days max
+    const msRange = new Date(toDate).getTime() - new Date(fromDate).getTime();
+    const days    = Math.min(366, Math.round(msRange / 86400000) + 1);
+
+    const startIso = fromDate + 'T00:00:00.000Z';
+    const endIso   = toDate   + 'T23:59:59.999Z';
+
+    // Pre-fill every day in range with zeros
+    const dateMap = {};
+    for (let i = 0; i < days; i++) {
+      const d   = new Date(new Date(fromDate + 'T00:00:00Z').getTime() + i * 86400000);
+      const key = d.toISOString().slice(0, 10);
+      dateMap[key] = { date: key, ghs: 0, ngn: 0, sales: 0 };
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('created_at, amount, currency')
+        .eq('status', 'success')
+        .gte('created_at', startIso)
+        .lte('created_at', endIso)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      for (const p of (data || [])) {
+        const key = p.created_at.slice(0, 10);
+        if (!dateMap[key]) continue;
+        if (p.currency === 'GHS') {
+          dateMap[key].ghs   += p.amount || 0;
+          dateMap[key].sales += 1;
+        } else if (p.currency === 'NGN') {
+          dateMap[key].ngn   += p.amount || 0;
+          dateMap[key].sales += 1;
+        }
+      }
+    } else {
+      for (const p of memPayments) {
+        if (p.status !== 'success') continue;
+        const key = (p.createdAt || '').slice(0, 10);
+        if (!dateMap[key]) continue;
+        if (p.currency === 'GHS') {
+          dateMap[key].ghs   += p.amount || 0;
+          dateMap[key].sales += 1;
+        } else if (p.currency === 'NGN') {
+          dateMap[key].ngn   += p.amount || 0;
+          dateMap[key].sales += 1;
+        }
+      }
+    }
+
+    res.json({ success: true, data: Object.values(dateMap), meta: { from: fromDate, to: toDate } });
+  } catch (err) { safeError(res, 500, 'Failed to load daily revenue', err); }
+});
+
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
-    const { total, active, completed, payments, recentPayments } = await db.stats();
+    const statsResult = await db.stats();
+    const { total, active, completed, recentPayments } = statsResult;
 
-    // ── Time boundaries (start-of-day in UTC) ────────────────────────────────
-    const now        = new Date();
-    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const weekStart  = new Date(todayStart.getTime() - 6 * 86400000); // last 7 days incl. today
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    let totalRevenue, totalNgnRevenue, totalSales, ghsSales, ngnSales;
+    let todayRevenue, todayNgnRevenue, todaySales;
+    let weekRevenue,  weekNgnRevenue,  weekSales;
+    let monthRevenue, monthNgnRevenue, monthSales;
 
-    // ── Revenue breakdowns — split by currency ────────────────────────────────
-    const ghsPayments = payments.filter(p => p.currency === 'GHS');
-    const ngnPayments = payments.filter(p => p.currency === 'NGN');
+    if (statsResult._aggregated) {
+      // ── Pre-computed by db.stats() via Postgres aggregates (no row-cap issue) ──
+      ({ totalRevenue, totalNgnRevenue, totalSales, ghsSales, ngnSales,
+         todayRevenue, todayNgnRevenue, todaySales,
+         weekRevenue,  weekNgnRevenue,  weekSales,
+         monthRevenue, monthNgnRevenue, monthSales } = statsResult);
+    } else {
+      // ── In-memory fallback: compute from the payments array ──────────────────
+      const payments = statsResult.payments;
+      const now        = new Date();
+      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const weekStart  = new Date(todayStart.getTime() - 6 * 86400000);
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-    const totalRevenue    = ghsPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const totalNgnRevenue = ngnPayments.reduce((s, p) => s + (p.amount || 0), 0);
+      const ghsPayments = payments.filter(p => p.currency === 'GHS');
+      const ngnPayments = payments.filter(p => p.currency === 'NGN');
 
-    const todayPayments    = payments.filter(p => new Date(p.createdAt) >= todayStart);
-    const weekPayments     = payments.filter(p => new Date(p.createdAt) >= weekStart);
-    const monthPayments    = payments.filter(p => new Date(p.createdAt) >= monthStart);
+      totalRevenue    = ghsPayments.reduce((s, p) => s + (p.amount || 0), 0);
+      totalNgnRevenue = ngnPayments.reduce((s, p) => s + (p.amount || 0), 0);
+      totalSales      = payments.length;
+      ghsSales        = ghsPayments.length;
+      ngnSales        = ngnPayments.length;
 
-    const todayGhsPayments = todayPayments.filter(p => p.currency === 'GHS');
-    const todayNgnPayments = todayPayments.filter(p => p.currency === 'NGN');
-    const weekGhsPayments  = weekPayments.filter(p => p.currency === 'GHS');
-    const weekNgnPayments  = weekPayments.filter(p => p.currency === 'NGN');
-    const monthGhsPayments = monthPayments.filter(p => p.currency === 'GHS');
-    const monthNgnPayments = monthPayments.filter(p => p.currency === 'NGN');
+      const todayP = payments.filter(p => new Date(p.createdAt) >= todayStart);
+      const weekP  = payments.filter(p => new Date(p.createdAt) >= weekStart);
+      const monthP = payments.filter(p => new Date(p.createdAt) >= monthStart);
 
-    const todayRevenue    = todayGhsPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const todayNgnRevenue = todayNgnPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const weekRevenue     = weekGhsPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const weekNgnRevenue  = weekNgnPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const monthRevenue    = monthGhsPayments.reduce((s, p) => s + (p.amount || 0), 0);
-    const monthNgnRevenue = monthNgnPayments.reduce((s, p) => s + (p.amount || 0), 0);
+      todayRevenue    = todayP.filter(p => p.currency === 'GHS').reduce((s, p) => s + (p.amount || 0), 0);
+      todayNgnRevenue = todayP.filter(p => p.currency === 'NGN').reduce((s, p) => s + (p.amount || 0), 0);
+      todaySales      = todayP.length;
+      weekRevenue     = weekP.filter(p => p.currency === 'GHS').reduce((s, p) => s + (p.amount || 0), 0);
+      weekNgnRevenue  = weekP.filter(p => p.currency === 'NGN').reduce((s, p) => s + (p.amount || 0), 0);
+      weekSales       = weekP.length;
+      monthRevenue    = monthP.filter(p => p.currency === 'GHS').reduce((s, p) => s + (p.amount || 0), 0);
+      monthNgnRevenue = monthP.filter(p => p.currency === 'NGN').reduce((s, p) => s + (p.amount || 0), 0);
+      monthSales      = monthP.length;
+    }
 
     // ── Win / Loss counts from completed predictions ──────────────────────────
     let totalWins = 0, totalLosses = 0;
@@ -842,7 +996,6 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
       totalWins   = wins   || 0;
       totalLosses = losses || 0;
     } else {
-      // In-memory fallback — use module-level memPredictions directly
       totalWins   = memPredictions.filter(p => p.result === 'win').length;
       totalLosses = memPredictions.filter(p => p.result === 'loss').length;
     }
@@ -855,12 +1008,12 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 
     res.json({ success: true, data: {
       totalSlips: total, activeSlips: active, completedSlips: completed,
-      totalRevenue,    totalNgnRevenue,    totalSales:   payments.length,
-      todayRevenue,    todayNgnRevenue,    todaySales:   todayPayments.length,
-      weekRevenue,     weekNgnRevenue,     weekSales:    weekPayments.length,
-      monthRevenue,    monthNgnRevenue,    monthSales:   monthPayments.length,
-      ghsSales: ghsPayments.length, ngnSales: ngnPayments.length,
-      totalWins, totalLosses,
+      totalRevenue,    totalNgnRevenue,    totalSales,
+      todayRevenue,    todayNgnRevenue,    todaySales,
+      weekRevenue,     weekNgnRevenue,     weekSales,
+      monthRevenue,    monthNgnRevenue,    monthSales,
+      ghsSales,        ngnSales,
+      totalWins,       totalLosses,
       recentActivity,
     }});
   } catch (err) { safeError(res, 500, 'Failed to load stats', err); }
