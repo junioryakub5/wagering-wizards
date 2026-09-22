@@ -318,68 +318,78 @@ const db = {
   },
   async stats() {
     if (supabase) {
-      // Fetch prediction counts + recent activity in parallel
-      const [
-        { count: total },
-        { count: active },
-        { count: completed },
-        { data: allPaymentRows, error: payErr },
-        { data: recentRaw },
-      ] = await Promise.all([
-        supabase.from('predictions').select('*', { count: 'exact', head: true }),
-        supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-        // Only fetch the 3 columns we need — keeps payload tiny even with many rows
-        supabase.from('payments').select('amount, currency, created_at').eq('status', 'success'),
-        supabase.from('payments').select('*').eq('status', 'success')
-          .order('created_at', { ascending: false }).limit(20),
-      ]);
-
-      if (payErr) throw payErr;
-
       // ── Time boundaries ───────────────────────────────────────────────────
       const now        = new Date();
       const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
       const weekStart  = new Date(todayStart.getTime() - 6 * 86400000);
       const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      const todayIso   = todayStart.toISOString();
+      const weekIso    = weekStart.toISOString();
+      const monthIso   = monthStart.toISOString();
 
-      // ── Aggregate in JS ───────────────────────────────────────────────────
+      // Fetch prediction counts + period rows + recent activity in parallel
+      // Period queries are date-filtered so they never exceed 1000 rows
+      const [
+        { count: total },
+        { count: active },
+        { count: completed },
+        { data: todayRows,  error: e1 },
+        { data: weekRows,   error: e2 },
+        { data: monthRows,  error: e3 },
+        { data: recentRaw },
+      ] = await Promise.all([
+        supabase.from('predictions').select('*', { count: 'exact', head: true }),
+        supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('predictions').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabase.from('payments').select('amount, currency').eq('status', 'success').gte('created_at', todayIso),
+        supabase.from('payments').select('amount, currency').eq('status', 'success').gte('created_at', weekIso),
+        supabase.from('payments').select('amount, currency').eq('status', 'success').gte('created_at', monthIso),
+        supabase.from('payments').select('*').eq('status', 'success').order('created_at', { ascending: false }).limit(20),
+      ]);
+
+      if (e1 || e2 || e3) throw e1 || e2 || e3;
+
+      // Helper: sum GHS/NGN from a small date-filtered result set
+      const sumRows = (rows) => {
+        let ghs = 0, ngn = 0, sales = (rows || []).length;
+        for (const p of (rows || [])) {
+          if (p.currency === 'GHS') ghs += p.amount || 0;
+          else if (p.currency === 'NGN') ngn += p.amount || 0;
+        }
+        return { ghs, ngn, sales };
+      };
+
+      const todaySums  = sumRows(todayRows);
+      const weekSums   = sumRows(weekRows);
+      const monthSums  = sumRows(monthRows);
+
+      // ── Paginate all-time totals (bypasses the 1000-row default cap) ──────
       let totalRevenue = 0, totalNgnRevenue = 0, totalSales = 0, ghsSales = 0, ngnSales = 0;
-      let todayRevenue = 0, todayNgnRevenue = 0, todaySales = 0;
-      let weekRevenue  = 0, weekNgnRevenue  = 0, weekSales  = 0;
-      let monthRevenue = 0, monthNgnRevenue = 0, monthSales = 0;
-
-      for (const p of (allPaymentRows || [])) {
-        const amt = p.amount || 0;
-        const ts  = new Date(p.created_at);
-        const isGhs = p.currency === 'GHS';
-        const isNgn = p.currency === 'NGN';
-
-        if (isGhs) { totalRevenue    += amt; ghsSales++; }
-        if (isNgn) { totalNgnRevenue += amt; ngnSales++; }
-        totalSales++;
-
-        if (ts >= todayStart) {
-          if (isGhs) { todayRevenue    += amt; } else if (isNgn) { todayNgnRevenue += amt; }
-          todaySales++;
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('payments')
+          .select('amount, currency')
+          .eq('status', 'success')
+          .range(from, from + PAGE - 1);
+        if (error || !data?.length) break;
+        for (const p of data) {
+          totalSales++;
+          if (p.currency === 'GHS') { totalRevenue    += p.amount || 0; ghsSales++; }
+          if (p.currency === 'NGN') { totalNgnRevenue += p.amount || 0; ngnSales++; }
         }
-        if (ts >= weekStart) {
-          if (isGhs) { weekRevenue    += amt; } else if (isNgn) { weekNgnRevenue += amt; }
-          weekSales++;
-        }
-        if (ts >= monthStart) {
-          if (isGhs) { monthRevenue    += amt; } else if (isNgn) { monthNgnRevenue += amt; }
-          monthSales++;
-        }
+        if (data.length < PAGE) break; // last page
+        from += PAGE;
       }
 
       return {
         total, active, completed,
         _aggregated: true,
         totalRevenue, totalNgnRevenue, totalSales, ghsSales, ngnSales,
-        todayRevenue, todayNgnRevenue, todaySales,
-        weekRevenue,  weekNgnRevenue,  weekSales,
-        monthRevenue, monthNgnRevenue, monthSales,
+        todayRevenue:    todaySums.ghs,   todayNgnRevenue: todaySums.ngn,   todaySales:  todaySums.sales,
+        weekRevenue:     weekSums.ghs,    weekNgnRevenue:  weekSums.ngn,    weekSales:   weekSums.sales,
+        monthRevenue:    monthSums.ghs,   monthNgnRevenue: monthSums.ngn,   monthSales:  monthSums.sales,
         payments: [],
         recentPayments: (recentRaw || []).map(toMoney),
       };
