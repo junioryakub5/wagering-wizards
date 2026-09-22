@@ -248,26 +248,27 @@ function OverviewSection({ token }: { token: string }) {
   };
 
   type Preset = "7d" | "14d" | "30d" | "mtd" | "custom";
-  const [preset, setPreset]   = useState<Preset>("30d");
+  const [preset, setPreset]     = useState<Preset>("30d");
   const [fromDate, setFromDate] = useState(daysAgoStr(29));
   const [toDate,   setToDate]   = useState(todayStr());
-  // pendingFrom/To are what the inputs show before Apply is clicked
-  const [pendingFrom, setPendingFrom] = useState(fromDate);
-  const [pendingTo,   setPendingTo]   = useState(toDate);
+  const [pendingFrom, setPendingFrom] = useState(daysAgoStr(29));
+  const [pendingTo,   setPendingTo]   = useState(todayStr());
 
-  const [loading, setLoading]     = useState(true);
+  // Always-current ref so fetchStats never reads stale closure values
+  const dateRangeRef = useRef({ from: daysAgoStr(29), to: todayStr() });
+
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [secondsAgo, setSecondsAgo]   = useState(0);
 
-  const fetchStats = useCallback(async (silent = false, overrideFrom?: string, overrideTo?: string) => {
+  const fetchStats = useCallback(async (silent = false) => {
     if (!silent) setLoading(true); else setRefreshing(true);
-    const f = overrideFrom ?? fromDate;
-    const t = overrideTo   ?? toDate;
+    const { from, to } = dateRangeRef.current;
     try {
       const [data, daily] = await Promise.all([
         adminGetStats(token),
-        adminGetRevenueByDay(token, { from: f, to: t }),
+        adminGetRevenueByDay(token, { from, to }),
       ]);
       setStats(data);
       setDailyRevenue(daily);
@@ -275,7 +276,7 @@ function OverviewSection({ token }: { token: string }) {
       setSecondsAgo(0);
     } catch (e) { console.error(e); }
     finally { setLoading(false); setRefreshing(false); }
-  }, [token, fromDate, toDate]);
+  }, [token]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
@@ -291,18 +292,20 @@ function OverviewSection({ token }: { token: string }) {
     return () => clearInterval(tick);
   }, [lastUpdated]);
 
-  // Apply a quick preset
+  // Apply a quick preset — writes ref immediately then fetches
   const applyPreset = (p: Preset) => {
     setPreset(p);
-    let f = fromDate, t = todayStr();
-    if (p === "7d")   { f = daysAgoStr(6);  }
-    if (p === "14d")  { f = daysAgoStr(13); }
-    if (p === "30d")  { f = daysAgoStr(29); }
-    if (p === "mtd")  { f = monthStartStr(); }
-    if (p === "custom") return; // don't auto-fetch; user will click Apply
+    if (p === "custom") return; // wait for user to pick dates and click Apply
+    const t = todayStr();
+    let f = daysAgoStr(29);
+    if (p === "7d")  f = daysAgoStr(6);
+    if (p === "14d") f = daysAgoStr(13);
+    if (p === "30d") f = daysAgoStr(29);
+    if (p === "mtd") f = monthStartStr();
+    dateRangeRef.current = { from: f, to: t };
     setFromDate(f); setToDate(t);
     setPendingFrom(f); setPendingTo(t);
-    fetchStats(false, f, t);
+    fetchStats(false);
   };
 
   // Apply custom date inputs
@@ -310,8 +313,9 @@ function OverviewSection({ token }: { token: string }) {
     if (!pendingFrom || !pendingTo) return;
     const f = pendingFrom <= pendingTo ? pendingFrom : pendingTo;
     const t = pendingFrom <= pendingTo ? pendingTo   : pendingFrom;
+    dateRangeRef.current = { from: f, to: t };
     setFromDate(f); setToDate(t);
-    fetchStats(false, f, t);
+    fetchStats(false);
   };
 
   if (loading) return (

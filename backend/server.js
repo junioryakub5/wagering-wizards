@@ -875,7 +875,8 @@ app.get('/api/admin/revenue-by-day', adminAuth, async (req, res) => {
       if (toDate > todayUtc) toDate = todayUtc; // never future
     } else {
       const days = Math.min(366, Math.max(1, parseInt(req.query.days) || 30));
-      const start = new Date(Date.UTC(...todayUtc.split('-').map(Number)) - (days - 1) * 86400000);
+      const now2  = new Date();
+      const start = new Date(Date.UTC(now2.getUTCFullYear(), now2.getUTCMonth(), now2.getUTCDate()) - (days - 1) * 86400000);
       fromDate = start.toISOString().slice(0, 10);
       toDate   = todayUtc;
     }
