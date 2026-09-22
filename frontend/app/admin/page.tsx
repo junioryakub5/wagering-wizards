@@ -614,9 +614,10 @@ function OverviewSection({ token }: { token: string }) {
         const maxNgn = Math.max(...dailyRevenue.map(d => d.ngn), 1);
         const hasNgn = dailyRevenue.some(d => d.ngn > 0);
         const totalPeriodGhs   = dailyRevenue.reduce((s, d) => s + d.ghs, 0);
+        const totalPeriodNgn   = dailyRevenue.reduce((s, d) => s + d.ngn, 0);
         const totalPeriodSales = dailyRevenue.reduce((s, d) => s + d.sales, 0);
-        const numDays = dailyRevenue.length;
-        const barGap  = numDays > 60 ? 1 : numDays > 30 ? 2 : numDays > 14 ? 3 : numDays > 7 ? 6 : 10;
+        const numDays    = dailyRevenue.length;
+        const barGap     = numDays > 60 ? 1 : numDays > 30 ? 2 : numDays > 14 ? 3 : numDays > 7 ? 6 : 10;
         const labelEvery = numDays > 60 ? 10 : numDays > 30 ? 5 : numDays > 14 ? 2 : 1;
 
         const inputStyle: React.CSSProperties = {
@@ -625,6 +626,10 @@ function OverviewSection({ token }: { token: string }) {
           outline: "none", colorScheme: "dark",
         };
 
+        // Format date label nicely
+        const fmtDate = (iso: string) =>
+          new Date(iso + "T00:00:00Z").toLocaleDateString([], { day: "numeric", month: "short", year: "2-digit" });
+
         return (
           <div className="rounded-2xl" style={{ background: "rgba(17,17,23,0.95)", border: "1px solid rgba(203,163,61,0.08)", padding: "1.25rem" }}>
 
@@ -632,8 +637,8 @@ function OverviewSection({ token }: { token: string }) {
             <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
               <div>
                 <p style={{ fontWeight: 700, fontSize: "0.85rem", color: "#f4f4f5", fontFamily: "'Sora', sans-serif" }}>Revenue by Day</p>
-                <p style={{ fontSize: "0.65rem", color: "#3f3f46", marginTop: 2 }}>
-                  GHS {totalPeriodGhs.toFixed(2)} · {totalPeriodSales} sales · {fromDate} → {toDate}
+                <p style={{ fontSize: "0.62rem", color: "#3f3f46", marginTop: 2 }}>
+                  {fmtDate(fromDate)} → {fmtDate(toDate)} · {numDays} day{numDays !== 1 ? "s" : ""}
                 </p>
               </div>
 
@@ -654,6 +659,50 @@ function OverviewSection({ token }: { token: string }) {
                     {p === "mtd" ? "MTD" : p === "custom" ? "Custom" : p}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* ── Revenue summary strip ── */}
+            <div className="grid mb-4" style={{ gridTemplateColumns: hasNgn ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8 }}>
+              {/* GHS */}
+              <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)", borderRadius: 10, padding: "10px 14px" }}>
+                <p style={{ fontSize: "0.58rem", color: "#52525b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                  🇬🇭 GHS Revenue
+                </p>
+                <p style={{ fontSize: "1.1rem", fontWeight: 800, color: "#22c55e", fontFamily: "'Sora', sans-serif", lineHeight: 1 }}>
+                  {totalPeriodGhs.toFixed(2)}
+                </p>
+                <p style={{ fontSize: "0.6rem", color: "#3f3f46", marginTop: 3 }}>
+                  {dailyRevenue.filter(d => d.ghs > 0).length} active day{dailyRevenue.filter(d => d.ghs > 0).length !== 1 ? "s" : ""}
+                </p>
+              </div>
+
+              {/* NGN — only shown if there are NGN payments */}
+              {hasNgn && (
+                <div style={{ background: "rgba(0,176,116,0.06)", border: "1px solid rgba(0,176,116,0.12)", borderRadius: 10, padding: "10px 14px" }}>
+                  <p style={{ fontSize: "0.58rem", color: "#52525b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                    🇳🇬 NGN Revenue
+                  </p>
+                  <p style={{ fontSize: "1.1rem", fontWeight: 800, color: "#00b074", fontFamily: "'Sora', sans-serif", lineHeight: 1 }}>
+                    {totalPeriodNgn.toLocaleString()}
+                  </p>
+                  <p style={{ fontSize: "0.6rem", color: "#3f3f46", marginTop: 3 }}>
+                    {dailyRevenue.filter(d => d.ngn > 0).length} active day{dailyRevenue.filter(d => d.ngn > 0).length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              )}
+
+              {/* Sales count */}
+              <div style={{ background: "rgba(203,163,61,0.06)", border: "1px solid rgba(203,163,61,0.12)", borderRadius: 10, padding: "10px 14px" }}>
+                <p style={{ fontSize: "0.58rem", color: "#52525b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                  Total Sales
+                </p>
+                <p style={{ fontSize: "1.1rem", fontWeight: 800, color: "#cba33d", fontFamily: "'Sora', sans-serif", lineHeight: 1 }}>
+                  {totalPeriodSales}
+                </p>
+                <p style={{ fontSize: "0.6rem", color: "#3f3f46", marginTop: 3 }}>
+                  avg {numDays > 0 ? (totalPeriodSales / numDays).toFixed(1) : 0}/day
+                </p>
               </div>
             </div>
 
